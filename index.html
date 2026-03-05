@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>KWH METER PROYEK DAFI DAN ROHMA</title>
+<title>Energy Monitoring Dashboard</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -19,9 +19,13 @@ text-align:center;
 margin:0;
 }
 
-h2{margin-top:20px;}
+h2{
+margin-top:20px;
+}
 
-#login{margin-top:80px;}
+#login{
+margin-top:80px;
+}
 
 input{
 padding:10px;
@@ -56,6 +60,10 @@ backdrop-filter:blur(10px);
 transition:0.3s;
 }
 
+.card:hover{
+transform:scale(1.05);
+}
+
 .value{
 font-size:26px;
 font-weight:bold;
@@ -69,11 +77,12 @@ margin-top:20px;
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h2>⚡ Energy Monitoring Dashboard</h2>
+<h2>ROHMA DAN SAFI KWH METER</h2>
 
 <div id="login">
 
@@ -91,9 +100,10 @@ margin-top:20px;
 <div class="card">Voltage<div id="voltage" class="value">0</div></div>
 <div class="card">Current<div id="current" class="value">0</div></div>
 <div class="card">Power<div id="power" class="value">0</div></div>
-<div class="card">Energy<div id="energy" class="value">0</div></div>
+<div class="card">Energy (kWh)<div id="energy" class="value">0</div></div>
 <div class="card">Frequency<div id="frequency" class="value">0</div></div>
 <div class="card">PF<div id="pf" class="value">0</div></div>
+<div class="card">Total Biaya<div id="cost" class="value">Rp 0</div></div>
 
 </div>
 
@@ -121,6 +131,8 @@ firebase.initializeApp(firebaseConfig);
 
 const db = firebase.database();
 const auth = firebase.auth();
+
+const tarif = 415;
 
 let chart;
 let historyData=[];
@@ -167,6 +179,13 @@ setValue("power",d.power);
 setValue("energy",d.energy);
 setValue("frequency",d.frequency);
 setValue("pf",d.pf);
+
+let energy = Number(d.energy);
+
+let biaya = energy * tarif;
+
+document.getElementById("cost").innerText =
+"Rp " + biaya.toLocaleString();
 
 });
 
