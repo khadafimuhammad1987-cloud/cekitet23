@@ -19,13 +19,9 @@ text-align:center;
 margin:0;
 }
 
-h2{
-margin-top:20px;
-}
+h2{margin-top:20px;}
 
-#login{
-margin-top:80px;
-}
+#login{margin-top:80px;}
 
 input{
 padding:10px;
@@ -57,11 +53,6 @@ padding:20px;
 background:rgba(255,255,255,0.1);
 border-radius:10px;
 backdrop-filter:blur(10px);
-transition:0.3s;
-}
-
-.card:hover{
-transform:scale(1.05);
 }
 
 .value{
@@ -77,12 +68,11 @@ margin-top:20px;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<h2>ROHMA DAN SAFI KWH METER</h2>
+<h2>⚡ Energy Monitoring Dashboard</h2>
 
 <div id="login">
 
@@ -100,16 +90,15 @@ margin-top:20px;
 <div class="card">Voltage<div id="voltage" class="value">0</div></div>
 <div class="card">Current<div id="current" class="value">0</div></div>
 <div class="card">Power<div id="power" class="value">0</div></div>
-<div class="card">Energy (kWh)<div id="energy" class="value">0</div></div>
+<div class="card">Energy<div id="energy" class="value">0</div></div>
 <div class="card">Frequency<div id="frequency" class="value">0</div></div>
 <div class="card">PF<div id="pf" class="value">0</div></div>
+
 <div class="card">Total Biaya<div id="cost" class="value">Rp 0</div></div>
 
 </div>
 
 <br>
-
-<button onclick="exportCSV()">Export CSV</button>
 
 <canvas id="chart" width="900" height="400"></canvas>
 
@@ -135,7 +124,6 @@ const auth = firebase.auth();
 const tarif = 415;
 
 let chart;
-let historyData=[];
 
 function login(){
 
@@ -180,6 +168,8 @@ setValue("energy",d.energy);
 setValue("frequency",d.frequency);
 setValue("pf",d.pf);
 
+/* HITUNG BIAYA */
+
 let energy = Number(d.energy);
 
 let biaya = energy * tarif;
@@ -200,8 +190,6 @@ db.ref("monitoring/history")
 let labels=[];
 let power=[];
 
-historyData=[];
-
 snap.forEach(child=>{
 
 let d=child.val();
@@ -213,11 +201,6 @@ let t=new Date(d.timestamp*1000);
 labels.push(t.toLocaleTimeString());
 
 power.push(Number(d.power));
-
-historyData.push({
-time:t.toLocaleString(),
-power:d.power
-});
 
 }
 
@@ -242,11 +225,8 @@ labels:labels,
 datasets:[{
 label:'Power (W)',
 data:data,
-borderColor:'#00ffcc',
-backgroundColor:'rgba(0,255,200,0.2)',
 borderWidth:2,
-tension:0.4,
-fill:true
+tension:0.4
 }]
 },
 options:{
@@ -258,24 +238,6 @@ beginAtZero:true
 }
 }
 });
-
-}
-
-function exportCSV(){
-
-let csv="Time,Power\n";
-
-historyData.forEach(d=>{
-csv+=d.time+","+d.power+"\n";
-});
-
-let blob=new Blob([csv],{type:"text/csv"});
-let url=URL.createObjectURL(blob);
-
-let a=document.createElement("a");
-a.href=url;
-a.download="energy_data.csv";
-a.click();
 
 }
 
