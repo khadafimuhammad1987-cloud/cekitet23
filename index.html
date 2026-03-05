@@ -169,7 +169,8 @@ el.style.transform="scale(1.2)";
 
 setTimeout(()=>{
 
-el.innerText=val;
+el.innerText=parseFloat(val).toFixed(1);
+
 el.style.transform="scale(1)";
 
 },150);
@@ -181,6 +182,8 @@ function loadLive(){
 db.ref("monitoring/live").on("value",(snap)=>{
 
 let d=snap.val();
+
+if(!d) return;
 
 animateValue("voltage",d.voltage);
 animateValue("current",d.current);
@@ -200,16 +203,18 @@ let date=document.getElementById("date").value;
 let labels=[];
 let power=[];
 
-db.ref("monitoring/history").once("value",(snap)=>{
+db.ref("monitoring/history").limitToLast(100).once("value",(snap)=>{
 
 snap.forEach(child=>{
 
 let data=child.val();
 
-if(data.date==date){
+if(data){
 
-labels.push(data.time);
-power.push(data.power);
+let waktu=new Date(data.timestamp).toLocaleTimeString();
+
+labels.push(waktu);
+power.push(parseFloat(data.power));
 
 }
 
@@ -239,7 +244,12 @@ tension:0.4
 }]
 },
 options:{
-responsive:true
+responsive:true,
+scales:{
+y:{
+beginAtZero:true
+}
+}
 }
 });
 
