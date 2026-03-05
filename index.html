@@ -72,7 +72,7 @@ margin-top:20px;
 
 <body>
 
-<h2>PROYEK KWH METER DAFI DAN ROHMA</h2>
+<h2>⚡ Energy Monitoring Dashboard</h2>
 
 <div id="login">
 
@@ -125,8 +125,6 @@ const tarif = 415;
 
 let chart;
 
-/* LOGIN */
-
 function login(){
 
 let email=document.getElementById("email").value;
@@ -146,8 +144,6 @@ loadChart();
 
 }
 
-/* FORMAT ANGKA */
-
 function setValue(id,val){
 
 if(val==null) val=0;
@@ -157,13 +153,9 @@ Number(val).toFixed(1);
 
 }
 
-/* AMBIL DATA SETIAP 3 DETIK */
-
 function loadLive(){
 
-setInterval(()=>{
-
-db.ref("monitoring/live").once("value").then((snap)=>{
+db.ref("monitoring/live").on("value",(snap)=>{
 
 let d=snap.val();
 
@@ -176,7 +168,7 @@ setValue("energy",d.energy);
 setValue("frequency",d.frequency);
 setValue("pf",d.pf);
 
-/* HITUNG BIAYA LISTRIK */
+/* HITUNG BIAYA */
 
 let energy = Number(d.energy);
 
@@ -187,20 +179,13 @@ document.getElementById("cost").innerText =
 
 });
 
-},3000);
-
 }
-
-/* LOAD CHART SETIAP 3 DETIK */
 
 function loadChart(){
 
-setInterval(()=>{
-
 db.ref("monitoring/history")
 .limitToLast(100)
-.once("value")
-.then((snap)=>{
+.on("value",(snap)=>{
 
 let labels=[];
 let power=[];
@@ -225,11 +210,7 @@ drawChart(labels,power);
 
 });
 
-},3000);
-
 }
-
-/* DRAW CHART */
 
 function drawChart(labels,data){
 
