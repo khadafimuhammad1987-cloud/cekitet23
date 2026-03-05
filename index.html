@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Energy Monitoring Dashboard</title>
+<title>KWH METER PROYEK DAFI DAN ROHMA</title>
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -19,13 +19,9 @@ text-align:center;
 margin:0;
 }
 
-h2{
-margin-top:20px;
-}
+h2{margin-top:20px;}
 
-#login{
-margin-top:80px;
-}
+#login{margin-top:80px;}
 
 input{
 padding:10px;
@@ -60,10 +56,6 @@ backdrop-filter:blur(10px);
 transition:0.3s;
 }
 
-.card:hover{
-transform:scale(1.05);
-}
-
 .value{
 font-size:26px;
 font-weight:bold;
@@ -76,12 +68,7 @@ border-radius:10px;
 margin-top:20px;
 }
 
-.filter{
-margin-top:20px;
-}
-
 </style>
-
 </head>
 
 <body>
@@ -110,15 +97,9 @@ margin-top:20px;
 
 </div>
 
-<div class="filter">
+<br>
 
-<h3>History Chart</h3>
-
-<input type="date" id="date">
-
-<button onclick="loadHistory()">Load Data</button>
-
-</div>
+<button onclick="exportCSV()">Export CSV</button>
 
 <canvas id="chart" width="900" height="400"></canvas>
 
@@ -127,13 +108,13 @@ margin-top:20px;
 <script>
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
-  authDomain: "rohmadafi.firebaseapp.com",
-  databaseURL: "https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "rohmadafi",
-  storageBucket: "rohmadafi.firebasestorage.app",
-  messagingSenderId: "285538177933",
-  appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
+apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
+authDomain: "rohmadafi.firebaseapp.com",
+databaseURL: "https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId: "rohmadafi",
+storageBucket: "rohmadafi.firebasestorage.app",
+messagingSenderId: "285538177933",
+appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -142,6 +123,7 @@ const db = firebase.database();
 const auth = firebase.auth();
 
 let chart;
+let historyData=[];
 
 function login(){
 
@@ -155,25 +137,19 @@ document.getElementById("login").style.display="none";
 document.getElementById("dashboard").style.display="block";
 
 loadLive();
+loadChart();
 
 })
 .catch(err=>alert(err.message));
 
 }
 
-function animateValue(id,val){
+function setValue(id,val){
 
-let el=document.getElementById(id);
+if(val==null) val=0;
 
-el.style.transform="scale(1.2)";
-
-setTimeout(()=>{
-
-el.innerText=parseFloat(val).toFixed(1);
-
-el.style.transform="scale(1)";
-
-},150);
+document.getElementById(id).innerText=
+Number(val).toFixed(1);
 
 }
 
@@ -185,36 +161,44 @@ let d=snap.val();
 
 if(!d) return;
 
-animateValue("voltage",d.voltage);
-animateValue("current",d.current);
-animateValue("power",d.power);
-animateValue("energy",d.energy);
-animateValue("frequency",d.frequency);
-animateValue("pf",d.pf);
+setValue("voltage",d.voltage);
+setValue("current",d.current);
+setValue("power",d.power);
+setValue("energy",d.energy);
+setValue("frequency",d.frequency);
+setValue("pf",d.pf);
 
 });
 
 }
 
-function loadHistory(){
+function loadChart(){
 
-let date=document.getElementById("date").value;
+db.ref("monitoring/history")
+.limitToLast(100)
+.on("value",(snap)=>{
 
 let labels=[];
 let power=[];
 
-db.ref("monitoring/history").limitToLast(100).once("value",(snap)=>{
+historyData=[];
 
 snap.forEach(child=>{
 
-let data=child.val();
+let d=child.val();
 
-if(data){
+if(d){
 
-let waktu=new Date(data.timestamp).toLocaleTimeString();
+let t=new Date(d.timestamp*1000);
 
-labels.push(waktu);
-power.push(parseFloat(data.power));
+labels.push(t.toLocaleTimeString());
+
+power.push(Number(d.power));
+
+historyData.push({
+time:t.toLocaleString(),
+power:d.power
+});
 
 }
 
@@ -239,8 +223,11 @@ labels:labels,
 datasets:[{
 label:'Power (W)',
 data:data,
+borderColor:'#00ffcc',
+backgroundColor:'rgba(0,255,200,0.2)',
 borderWidth:2,
-tension:0.4
+tension:0.4,
+fill:true
 }]
 },
 options:{
@@ -252,6 +239,24 @@ beginAtZero:true
 }
 }
 });
+
+}
+
+function exportCSV(){
+
+let csv="Time,Power\n";
+
+historyData.forEach(d=>{
+csv+=d.time+","+d.power+"\n";
+});
+
+let blob=new Blob([csv],{type:"text/csv"});
+let url=URL.createObjectURL(blob);
+
+let a=document.createElement("a");
+a.href=url;
+a.download="energy_data.csv";
+a.click();
 
 }
 
