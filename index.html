@@ -13,14 +13,20 @@
 
 body{
 font-family:Arial;
-background:#0f172a;
+background:linear-gradient(135deg,#0f172a,#1e293b);
 color:white;
 text-align:center;
 }
 
 .container{
-width:90%;
+width:95%;
 margin:auto;
+}
+
+.cards{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
 }
 
 .card{
@@ -28,26 +34,29 @@ background:#1e293b;
 padding:20px;
 margin:10px;
 border-radius:15px;
-display:inline-block;
-width:200px;
+width:180px;
+box-shadow:0 0 10px rgba(0,0,0,0.4);
+}
+
+.card h3{
+margin:0;
+font-size:18px;
+color:#94a3b8;
 }
 
 .value{
-font-size:28px;
+font-size:32px;
 font-weight:bold;
+margin-top:10px;
+color:#38bdf8;
+}
+
+.cost{
+color:#22c55e;
 }
 
 .loginBox{
-margin-top:100px;
-}
-
-button{
-padding:10px;
-border:none;
-border-radius:8px;
-background:#38bdf8;
-color:white;
-cursor:pointer;
+margin-top:120px;
 }
 
 input{
@@ -57,6 +66,23 @@ border-radius:8px;
 border:none;
 }
 
+button{
+padding:10px 15px;
+border:none;
+border-radius:8px;
+background:#38bdf8;
+color:white;
+cursor:pointer;
+}
+
+.chartBox{
+width:90%;
+margin:auto;
+background:#1e293b;
+padding:20px;
+border-radius:15px;
+}
+
 </style>
 </head>
 
@@ -64,7 +90,7 @@ border:none;
 
 <div id="loginPage" class="loginBox">
 
-<h2>Login Energy Monitor</h2>
+<h2>⚡ Login Energy Monitor</h2>
 
 <input id="email" placeholder="Email"><br>
 <input id="password" type="password" placeholder="Password"><br>
@@ -78,47 +104,55 @@ border:none;
 
 <h1>⚡ Smart Energy Monitor</h1>
 
-<div class="container">
+<div class="cards">
 
 <div class="card">
-Voltage
-<div id="voltage" class="value">0</div>
-</div>
-
-<div class="card">
-Current
-<div id="current" class="value">0</div>
+<h3>Voltage</h3>
+<div id="voltage" class="value">0.0</div>
 </div>
 
 <div class="card">
-Power
-<div id="power" class="value">0</div>
+<h3>Current</h3>
+<div id="current" class="value">0.0</div>
 </div>
 
 <div class="card">
-Energy
-<div id="energy" class="value">0</div>
+<h3>Power</h3>
+<div id="power" class="value">0.0</div>
 </div>
 
 <div class="card">
-Daily Cost
-<div id="dailyCost" class="value">Rp 0</div>
+<h3>Energy</h3>
+<div id="energy" class="value">0.0</div>
 </div>
 
 <div class="card">
-Monthly Cost
-<div id="monthlyCost" class="value">Rp 0</div>
+<h3>Daily Cost</h3>
+<div id="dailyCost" class="value cost">Rp 0</div>
+</div>
+
+<div class="card">
+<h3>Monthly Cost</h3>
+<div id="monthlyCost" class="value cost">Rp 0</div>
 </div>
 
 </div>
-
-<br><br>
-
-<h2>Power Usage Graph</h2>
-
-<canvas id="powerChart"></canvas>
 
 <br>
+
+<h2>📊 Grafik Konsumsi Listrik</h2>
+
+<div class="chartBox">
+<canvas id="powerChart"></canvas>
+</div>
+
+<br>
+
+<h3>📅 Pilih Tanggal</h3>
+
+<input type="date" id="datePicker" onchange="loadHistory()">
+
+<br><br>
 
 <button onclick="exportCSV()">Export CSV</button>
 
@@ -127,7 +161,6 @@ Monthly Cost
 
 <script>
 
-// FIREBASE CONFIG ANDA
 const firebaseConfig = {
 apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
 authDomain: "rohmadafi.firebaseapp.com",
@@ -140,7 +173,7 @@ appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
 
 firebase.initializeApp(firebaseConfig);
 
-const db = firebase.database();
+const db=firebase.database();
 
 
 // LOGIN
@@ -166,20 +199,20 @@ startMonitoring()
 }
 
 
-
 // CHART
 
 let ctx=document.getElementById("powerChart").getContext("2d")
 
-let powerChart=new Chart(ctx,{
+let chart=new Chart(ctx,{
 type:'line',
 data:{
 labels:[],
 datasets:[{
-label:'Power (W)',
+label:"Power (W)",
 data:[],
-borderColor:'yellow',
-backgroundColor:'rgba(255,255,0,0.2)'
+borderColor:"#facc15",
+backgroundColor:"rgba(250,204,21,0.2)",
+tension:0.3
 }]
 }
 })
@@ -190,20 +223,20 @@ backgroundColor:'rgba(255,255,0,0.2)'
 
 function startMonitoring(){
 
-db.ref("monitoring").on("value",snapshot=>{
+db.ref("monitoring").on("value",snap=>{
 
-let data=snapshot.val()
+let d=snap.val()
 
-if(!data) return
+if(!d) return
 
-document.getElementById("voltage").innerText=data.voltage+" V"
-document.getElementById("current").innerText=data.current+" A"
-document.getElementById("power").innerText=data.power+" W"
-document.getElementById("energy").innerText=data.energy+" kWh"
+document.getElementById("voltage").innerText=parseFloat(d.voltage).toFixed(1)+" V"
+document.getElementById("current").innerText=parseFloat(d.current).toFixed(1)+" A"
+document.getElementById("power").innerText=parseFloat(d.power).toFixed(1)+" W"
+document.getElementById("energy").innerText=parseFloat(d.energy).toFixed(1)+" kWh"
 
-updateChart(data.power)
+updateChart(d.power)
 
-calculateCost(data.energy)
+calculateCost(d.energy)
 
 })
 
@@ -217,34 +250,60 @@ function updateChart(power){
 
 let time=new Date().toLocaleTimeString()
 
-powerChart.data.labels.push(time)
-powerChart.data.datasets[0].data.push(power)
+chart.data.labels.push(time)
+chart.data.datasets[0].data.push(power)
 
-if(powerChart.data.labels.length>20){
+if(chart.data.labels.length>30){
 
-powerChart.data.labels.shift()
-powerChart.data.datasets[0].data.shift()
-
-}
-
-powerChart.update()
+chart.data.labels.shift()
+chart.data.datasets[0].data.shift()
 
 }
 
+chart.update()
+
+}
 
 
-// HITUNG BIAYA LISTRIK
-// Tarif 1300VA ≈ Rp 1444 / kWh
+
+// BIAYA LISTRIK 1300VA
 
 function calculateCost(energy){
 
-let tariff=1444
+let tarif=1444
 
-let cost=energy*tariff
+let daily=energy*tarif
 
-document.getElementById("dailyCost").innerText="Rp "+cost.toFixed(0)
+let monthly=daily*30
 
-document.getElementById("monthlyCost").innerText="Rp "+(cost*30).toFixed(0)
+document.getElementById("dailyCost").innerText="Rp "+daily.toFixed(0)
+document.getElementById("monthlyCost").innerText="Rp "+monthly.toFixed(0)
+
+}
+
+
+
+// LOAD HISTORY BERDASARKAN TANGGAL
+
+function loadHistory(){
+
+let date=document.getElementById("datePicker").value
+
+db.ref("history/"+date).once("value",snap=>{
+
+let data=snap.val()
+
+if(!data){
+alert("Data tidak ada")
+return
+}
+
+alert(
+"Energy : "+data.energy+" kWh\n"+
+"Cost : Rp "+data.cost
+)
+
+})
 
 }
 
@@ -256,9 +315,9 @@ function exportCSV(){
 
 let rows=[["Time","Power"]]
 
-powerChart.data.labels.forEach((t,i)=>{
+chart.data.labels.forEach((t,i)=>{
 
-rows.push([t,powerChart.data.datasets[0].data[i]])
+rows.push([t,chart.data.datasets[0].data[i]])
 
 })
 
