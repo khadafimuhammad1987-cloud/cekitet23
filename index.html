@@ -1,121 +1,75 @@
-```html
 <!DOCTYPE html>
 <html>
-<head>
-<title>Energy Monitoring Dashboard</title>
 
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<head>
+
+<title>Monitoring Listrik 1300VA</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-
-body{
-font-family:Arial;
-background:linear-gradient(135deg,#1e3c72,#2a5298);
-color:white;
-text-align:center;
-margin:0;
-}
-
-h2{margin-top:20px;}
-
-#login{margin-top:80px;}
-
-input{
-padding:10px;
-border-radius:5px;
-border:none;
-width:200px;
-}
-
-button{
-padding:10px 20px;
-border:none;
-border-radius:5px;
-background:#00c6ff;
-color:white;
-cursor:pointer;
-}
-
-.dashboard{
-display:flex;
-flex-wrap:wrap;
-justify-content:center;
-margin-top:20px;
-}
-
-.card{
-width:170px;
-margin:10px;
-padding:20px;
-background:rgba(255,255,255,0.1);
-border-radius:10px;
-backdrop-filter:blur(10px);
-}
-
-.value{
-font-size:26px;
-font-weight:bold;
-margin-top:5px;
-}
-
-canvas{
-background:white;
-border-radius:10px;
-margin-top:20px;
-}
-
-</style>
 </head>
 
 <body>
 
-<h2>⚡ Energy Monitoring Dashboard</h2>
+<h2>LOGIN</h2>
 
-<div id="login">
-<input id="email" placeholder="Email"><br><br>
-<input id="password" type="password" placeholder="Password"><br><br>
+<input id="email" placeholder="email">
+<input id="pass" placeholder="password">
 <button onclick="login()">Login</button>
-</div>
 
-<div id="dashboard" style="display:none">
+<hr>
 
-<div class="dashboard">
+<h2>Realtime Monitoring</h2>
 
-<div class="card">Voltage<div id="voltage" class="value">0</div></div>
-<div class="card">Current<div id="current" class="value">0</div></div>
-<div class="card">Power<div id="power" class="value">0</div></div>
-<div class="card">Energy<div id="energy" class="value">0</div></div>
-<div class="card">Frequency<div id="frequency" class="value">0</div></div>
-<div class="card">PF<div id="pf" class="value">0</div></div>
-<div class="card">Biaya<div id="cost" class="value">Rp0</div></div>
+Voltage : <span id="voltage"></span> V<br>
+Current : <span id="current"></span> A<br>
+Power : <span id="power"></span> W<br>
+Energy : <span id="energy"></span> kWh<br>
 
-<div class="card">
-Power Limit
-<input id="limit" placeholder="Watt">
-<button onclick="setLimit()">Set</button>
-</div>
+<h3>Status Daya</h3>
 
-<div class="card">
-Energi 24 Jam
-<div id="energy24" class="value">0</div>
-</div>
+<span id="status"></span>
 
-</div>
+<hr>
 
-<br>
+<h2>Grafik Daya</h2>
+
+<canvas id="chart"></canvas>
+
+<hr>
+
+<h2>Perhitungan Energi & Biaya</h2>
+
+Tarif listrik : Rp1444.7 / kWh
+
+<h3>Energi Hari Ini</h3>
+
+<span id="energy_today">0</span> kWh
+
+<h3>Biaya Hari Ini</h3>
+
+Rp <span id="cost_today">0</span>
+
+<h3>Energi Bulan Ini</h3>
+
+<span id="energy_month">0</span> kWh
+
+<h3>Biaya Bulan Ini</h3>
+
+Rp <span id="cost_month">0</span>
+
+<br><br>
+
 <button onclick="exportCSV()">Export CSV</button>
-
-<canvas id="chart" width="900" height="400"></canvas>
-
-</div>
 
 <script>
 
 const firebaseConfig = {
+
 apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
 authDomain: "rohmadafi.firebaseapp.com",
 databaseURL: "https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -123,178 +77,121 @@ projectId: "rohmadafi",
 storageBucket: "rohmadafi.firebasestorage.app",
 messagingSenderId: "285538177933",
 appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
+
 };
 
 firebase.initializeApp(firebaseConfig);
 
-const db = firebase.database();
-const auth = firebase.auth();
-
-const tarif = 415;
-
-let chart;
-let historyData=[];
-let powerLimit=localStorage.getItem("limit")||0;
-
 function login(){
 
-let email=document.getElementById("email").value;
-let password=document.getElementById("password").value;
+let email=document.getElementById("email").value
+let pass=document.getElementById("pass").value
 
-auth.signInWithEmailAndPassword(email,password)
-.then(()=>{
-
-document.getElementById("login").style.display="none";
-document.getElementById("dashboard").style.display="block";
-
-loadLive();
-loadChart();
-
-})
-.catch(err=>alert(err.message));
+firebase.auth().signInWithEmailAndPassword(email,pass)
 
 }
 
-function setValue(id,val){
-if(val==null) val=0;
-document.getElementById(id).innerText=Number(val).toFixed(2);
-}
+let ctx=document.getElementById("chart").getContext("2d")
 
-function loadLive(){
-
-db.ref("monitoring/live").on("value",(snap)=>{
-
-let d=snap.val();
-if(!d) return;
-
-setValue("voltage",d.voltage);
-setValue("current",d.current);
-setValue("power",d.power);
-setValue("energy",d.energy);
-setValue("frequency",d.frequency);
-setValue("pf",d.pf);
-
-let biaya=d.energy*tarif;
-document.getElementById("cost").innerText="Rp "+biaya.toLocaleString();
-
-if(powerLimit>0 && d.power>powerLimit){
-document.body.style.background="red";
-}else{
-document.body.style.background="linear-gradient(135deg,#1e3c72,#2a5298)";
-}
-
-});
-
-}
-
-function loadChart(){
-
-db.ref("monitoring/history")
-.limitToLast(200)
-.on("value",(snap)=>{
-
-let labels=[];
-let power=[];
-
-historyData=[];
-
-snap.forEach(child=>{
-
-let d=child.val();
-
-let t=new Date(d.timestamp*1000);
-
-labels.push(t.toLocaleTimeString());
-power.push(Number(d.power));
-
-historyData.push({
-time:t,
-power:d.power
-});
-
-});
-
-drawChart(labels,power);
-energyLast24Hours();
-
-});
-
-}
-
-function drawChart(labels,data){
-
-if(chart) chart.destroy();
-
-const ctx=document.getElementById("chart");
-
-chart=new Chart(ctx,{
+let chart=new Chart(ctx,{
 type:'line',
 data:{
-labels:labels,
+labels:[],
 datasets:[{
 label:'Power (W)',
-data:data,
-borderColor:'#00ffcc',
-backgroundColor:'rgba(0,255,200,0.2)',
-fill:true
+data:[]
 }]
 }
-});
+})
+
+firebase.database().ref("monitoring/live").on("value",(snap)=>{
+
+let d=snap.val()
+
+document.getElementById("voltage").innerText=d.voltage
+document.getElementById("current").innerText=d.current
+document.getElementById("power").innerText=d.power
+document.getElementById("energy").innerText=d.energy
+
+if(d.power>1300)
+document.getElementById("status").innerText="⚠ Melebihi daya 1300VA"
+else
+document.getElementById("status").innerText="Normal"
+
+chart.data.labels.push(new Date().toLocaleTimeString())
+chart.data.datasets[0].data.push(d.power)
+
+chart.update()
+
+})
+
+function hitungBiaya(){
+
+let tarif=1444.7
+
+firebase.database().ref("monitoring/history").once("value",(snap)=>{
+
+let todayEnergy=0
+let monthEnergy=0
+
+let now=new Date()
+
+snap.forEach((child)=>{
+
+let d=child.val()
+
+let waktu=new Date(d.timestamp)
+
+if(waktu.toDateString()==now.toDateString())
+todayEnergy+=d.energy
+
+if(waktu.getMonth()==now.getMonth())
+monthEnergy+=d.energy
+
+})
+
+document.getElementById("energy_today").innerText=todayEnergy.toFixed(2)
+document.getElementById("energy_month").innerText=monthEnergy.toFixed(2)
+
+document.getElementById("cost_today").innerText=(todayEnergy*tarif).toFixed(0)
+document.getElementById("cost_month").innerText=(monthEnergy*tarif).toFixed(0)
+
+})
 
 }
 
-function energyLast24Hours(){
-
-let now=Date.now();
-let oneDay=24*60*60*1000;
-let total=0;
-
-historyData.forEach(d=>{
-
-let t=d.time.getTime();
-
-if(now-t<=oneDay){
-total+=Number(d.power);
-}
-
-});
-
-let kwh=(total/1000).toFixed(2);
-
-document.getElementById("energy24").innerText=kwh+" kWh";
-
-}
-
-function setLimit(){
-
-powerLimit=document.getElementById("limit").value;
-
-localStorage.setItem("limit",powerLimit);
-
-alert("Power limit saved");
-
-}
+setInterval(hitungBiaya,5000)
 
 function exportCSV(){
 
-let csv="Time,Power\n";
+firebase.database().ref("monitoring/history").once("value",(snap)=>{
 
-historyData.forEach(d=>{
-csv+=d.time+","+d.power+"\n";
-});
+let csv="voltage,current,power,energy\n"
 
-let blob=new Blob([csv],{type:"text/csv"});
-let url=URL.createObjectURL(blob);
+snap.forEach((child)=>{
 
-let a=document.createElement("a");
-a.href=url;
-a.download="energy_data.csv";
-a.click();
+let d=child.val()
+
+csv+=`${d.voltage},${d.current},${d.power},${d.energy}\n`
+
+})
+
+let blob=new Blob([csv])
+
+let a=document.createElement("a")
+
+a.href=URL.createObjectURL(blob)
+
+a.download="data_listrik.csv"
+
+a.click()
+
+})
 
 }
 
 </script>
 
 </body>
+
 </html>
-```
