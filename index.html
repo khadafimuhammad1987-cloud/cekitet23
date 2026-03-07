@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>PLN Smart Energy Monitor</title>
+<title>PLN Energy Monitor</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 
@@ -20,58 +20,74 @@
 
 body{
 font-family:Arial;
-background:linear-gradient(135deg,#005bea,#00c6fb);
 margin:0;
-padding:20px;
-color:white;
+background:#f1f4f9;
 }
 
-h1{
+.header{
+background:#1976d2;
+color:white;
+padding:20px;
+text-align:center;
+font-size:24px;
+}
+
+.loginBox{
+width:300px;
+margin:120px auto;
+background:white;
+padding:20px;
+border-radius:10px;
+box-shadow:0 5px 15px rgba(0,0,0,0.2);
 text-align:center;
 }
 
+.loginBox input{
+width:90%;
+padding:10px;
+margin:10px 0;
+}
+
+.loginBox button{
+width:100%;
+padding:10px;
+background:#1976d2;
+color:white;
+border:none;
+border-radius:5px;
+}
+
 .dashboard{
+display:none;
+padding:20px;
+}
+
+.cards{
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
 gap:15px;
-margin-top:20px;
 }
 
 .card{
 background:white;
-color:#333;
-border-radius:12px;
 padding:20px;
-box-shadow:0 5px 15px rgba(0,0,0,0.2);
+border-radius:10px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
 text-align:center;
 }
 
 .value{
-font-size:28px;
+font-size:26px;
 font-weight:bold;
-color:#0077ff;
+color:#1976d2;
 }
 
 .section{
-background:white;
-color:#333;
 margin-top:20px;
+background:white;
 padding:20px;
-border-radius:12px;
-box-shadow:0 5px 15px rgba(0,0,0,0.2);
-}
-
-button{
-background:#0077ff;
-color:white;
-border:none;
-padding:10px 15px;
-border-radius:6px;
-cursor:pointer;
-}
-
-button:hover{
-background:#005ad6;
+border-radius:10px;
+box-shadow:0 3px 10px rgba(0,0,0,0.1);
 }
 
 table{
@@ -80,20 +96,23 @@ border-collapse:collapse;
 }
 
 table th{
-background:#0077ff;
+background:#1976d2;
 color:white;
 padding:8px;
 }
 
 table td{
-padding:6px;
+padding:8px;
 border-bottom:1px solid #ddd;
 text-align:center;
 }
 
-input{
-padding:8px;
-margin:5px;
+button{
+padding:10px 15px;
+background:#1976d2;
+color:white;
+border:none;
+border-radius:5px;
 }
 
 </style>
@@ -102,72 +121,54 @@ margin:5px;
 
 <body>
 
-<h1>⚡ PLN Energy Monitoring</h1>
+<div class="header">
+⚡ PLN Energy Monitoring
+</div>
 
-<div class="section">
+<div id="loginPage" class="loginBox">
 
 <h3>Login</h3>
 
-<input id="email" placeholder="email">
-<input id="pass" type="password" placeholder="password">
+<input id="email" placeholder="Email">
+<input id="pass" type="password" placeholder="Password">
 
 <button onclick="login()">Login</button>
 
+<p id="loginStatus"></p>
+
 </div>
 
-<div class="dashboard">
+<div id="dashboard" class="dashboard">
+
+<div class="cards">
 
 <div class="card">
 Voltage
-<div class="value" id="voltage">0</div>
+<div class="value" id="voltage">0 V</div>
 </div>
 
 <div class="card">
 Current
-<div class="value" id="current">0</div>
+<div class="value" id="current">0 A</div>
 </div>
 
 <div class="card">
 Power
-<div class="value" id="power">0</div>
+<div class="value" id="power">0 W</div>
 </div>
 
 <div class="card">
 Energy
-<div class="value" id="energy">0</div>
+<div class="value" id="energy">0 kWh</div>
 </div>
 
 </div>
 
 <div class="section">
 
-<h3>Grafik Daya Realtime</h3>
+<h3>Grafik Daya</h3>
 
 <canvas id="powerChart"></canvas>
-
-</div>
-
-<div class="section">
-
-<h3>Konsumsi Harian</h3>
-
-<input type="date" id="tanggal">
-
-<button onclick="hitungHarian()">Tampilkan</button>
-
-<p>Energi : <b id="energyDay">0</b> kWh</p>
-
-<p>Biaya : Rp <b id="costDay">0</b></p>
-
-</div>
-
-<div class="section">
-
-<h3>Konsumsi Bulanan</h3>
-
-<p>Energi bulan ini : <b id="energyMonth">0</b> kWh</p>
-
-<p>Biaya bulan ini : Rp <b id="costMonth">0</b></p>
 
 </div>
 
@@ -190,10 +191,6 @@ Energy
 </table>
 
 </div>
-
-<div class="section">
-
-<button onclick="exportCSV()">Export CSV</button>
 
 </div>
 
@@ -220,6 +217,16 @@ let pass=document.getElementById("pass").value
 
 firebase.auth().signInWithEmailAndPassword(email,pass)
 
+.then(()=>{
+document.getElementById("loginPage").style.display="none"
+document.getElementById("dashboard").style.display="block"
+loadData()
+})
+
+.catch((error)=>{
+document.getElementById("loginStatus").innerText="Login gagal"
+})
+
 }
 
 let chart=new Chart(
@@ -229,18 +236,22 @@ type:'line',
 data:{
 labels:[],
 datasets:[{
-label:'Power (W)',
+label:'Power',
 data:[],
-borderColor:'#0077ff',
-backgroundColor:'rgba(0,119,255,0.2)',
+borderColor:'#1976d2',
+backgroundColor:'rgba(25,118,210,0.2)',
 fill:true
 }]
 }
 })
 
+function loadData(){
+
 firebase.database().ref("monitoring/live").on("value",(snap)=>{
 
 let d=snap.val()
+
+if(d){
 
 document.getElementById("voltage").innerText=d.voltage+" V"
 document.getElementById("current").innerText=d.current+" A"
@@ -259,71 +270,13 @@ chart.data.datasets[0].data.shift()
 
 chart.update()
 
-})
-
-function hitungHarian(){
-
-let tanggal=document.getElementById("tanggal").value
-let tarif=1444.7
-let total=0
-
-firebase.database().ref("monitoring/history").once("value",(snap)=>{
-
-snap.forEach((child)=>{
-
-let d=child.val()
-let waktu=new Date(d.timestamp)
-
-if(waktu.toISOString().slice(0,10)==tanggal){
-
-total+=d.energy
-
 }
 
 })
-
-document.getElementById("energyDay").innerText=total.toFixed(2)
-document.getElementById("costDay").innerText=(total*tarif).toFixed(0)
-
-})
-
-}
-
-function hitungBulanan(){
-
-let now=new Date()
-let tarif=1444.7
-let total=0
-
-firebase.database().ref("monitoring/history").once("value",(snap)=>{
-
-snap.forEach((child)=>{
-
-let d=child.val()
-let waktu=new Date(d.timestamp)
-
-if(waktu.getMonth()==now.getMonth()){
-
-total+=d.energy
-
-}
-
-})
-
-document.getElementById("energyMonth").innerText=total.toFixed(2)
-document.getElementById("costMonth").innerText=(total*tarif).toFixed(0)
-
-})
-
-}
-
-setInterval(hitungBulanan,5000)
-
-function loadHistory(){
 
 firebase.database().ref("monitoring/history")
-.limitToLast(20)
-.once("value",(snap)=>{
+.limitToLast(10)
+.on("value",(snap)=>{
 
 let table=""
 
@@ -349,37 +302,8 @@ document.getElementById("history").innerHTML=table
 
 }
 
-setInterval(loadHistory,5000)
-
-function exportCSV(){
-
-firebase.database().ref("monitoring/history").once("value",(snap)=>{
-
-let csv="voltage,current,power,energy\n"
-
-snap.forEach((child)=>{
-
-let d=child.val()
-
-csv+=`${d.voltage},${d.current},${d.power},${d.energy}\n`
-
-})
-
-let blob=new Blob([csv])
-
-let a=document.createElement("a")
-
-a.href=URL.createObjectURL(blob)
-
-a.download="data_listrik.csv"
-
-a.click()
-
-})
-
-}
-
 </script>
 
 </body>
+
 </html>
