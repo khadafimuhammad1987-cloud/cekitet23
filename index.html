@@ -3,7 +3,9 @@
 
 <head>
 
-<title>Monitoring Listrik 1300VA</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>PLN Energy Monitor</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -11,58 +13,133 @@
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+<style>
+
+body{
+font-family:Arial;
+background:#f5f5f5;
+margin:20px;
+}
+
+.card{
+background:white;
+padding:20px;
+margin:10px;
+border-radius:10px;
+box-shadow:0 0 10px rgba(0,0,0,0.1);
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:10px;
+}
+
+.value{
+font-size:25px;
+font-weight:bold;
+color:#0077cc;
+}
+
+</style>
+
 </head>
 
 <body>
 
-<h2>LOGIN</h2>
+<h2>⚡ PLN Energy Monitoring</h2>
+
+<div class="card">
 
 <input id="email" placeholder="email">
-<input id="pass" placeholder="password">
+<input id="pass" type="password" placeholder="password">
+
 <button onclick="login()">Login</button>
 
-<hr>
+</div>
 
-<h2>Realtime Monitoring</h2>
+<div class="grid">
 
-Voltage : <span id="voltage"></span> V<br>
-Current : <span id="current"></span> A<br>
-Power : <span id="power"></span> W<br>
-Energy : <span id="energy"></span> kWh<br>
+<div class="card">
+Voltage
+<div class="value" id="voltage">0</div>
+</div>
 
-<h3>Status Daya</h3>
+<div class="card">
+Current
+<div class="value" id="current">0</div>
+</div>
 
-<span id="status"></span>
+<div class="card">
+Power
+<div class="value" id="power">0</div>
+</div>
 
-<hr>
+<div class="card">
+Energy
+<div class="value" id="energy">0</div>
+</div>
 
-<h2>Grafik Daya</h2>
+</div>
 
-<canvas id="chart"></canvas>
+<div class="card">
 
-<hr>
+<h3>Grafik Daya Realtime</h3>
 
-<h2>Perhitungan Energi & Biaya</h2>
+<canvas id="powerChart"></canvas>
 
-Tarif listrik : Rp1444.7 / kWh
+</div>
 
-<h3>Energi Hari Ini</h3>
+<div class="card">
 
-<span id="energy_today">0</span> kWh
+<h3>Pilih Tanggal Konsumsi</h3>
 
-<h3>Biaya Hari Ini</h3>
+<input type="date" id="tanggal">
 
-Rp <span id="cost_today">0</span>
+<button onclick="hitungHarian()">Lihat Konsumsi</button>
 
-<h3>Energi Bulan Ini</h3>
+<p>Energi Hari Ini : <b id="energyDay">0</b> kWh</p>
 
-<span id="energy_month">0</span> kWh
+<p>Biaya Hari Ini : Rp <b id="costDay">0</b></p>
 
-<h3>Biaya Bulan Ini</h3>
+</div>
 
-Rp <span id="cost_month">0</span>
+<div class="card">
 
-<br><br>
+<h3>Konsumsi Bulanan</h3>
+
+<p>Energi Bulan Ini : <b id="energyMonth">0</b> kWh</p>
+
+<p>Biaya Bulan Ini : Rp <b id="costMonth">0</b></p>
+
+</div>
+
+<div class="card">
+
+<h3>Grafik Konsumsi Energi</h3>
+
+<canvas id="energyChart"></canvas>
+
+</div>
+
+<div class="card">
+
+<h3>Riwayat Konsumsi</h3>
+
+<table border="1" width="100%">
+<tr>
+<th>Waktu</th>
+<th>Voltage</th>
+<th>Current</th>
+<th>Power</th>
+<th>Energy</th>
+</tr>
+
+<tbody id="history"></tbody>
+
+</table>
+
+</div>
 
 <button onclick="exportCSV()">Export CSV</button>
 
@@ -91,16 +168,13 @@ firebase.auth().signInWithEmailAndPassword(email,pass)
 
 }
 
-let ctx=document.getElementById("chart").getContext("2d")
-
-let chart=new Chart(ctx,{
+let powerChart=new Chart(
+document.getElementById("powerChart"),
+{
 type:'line',
 data:{
 labels:[],
-datasets:[{
-label:'Power (W)',
-data:[]
-}]
+datasets:[{label:'Power',data:[]}]
 }
 })
 
@@ -108,33 +182,32 @@ firebase.database().ref("monitoring/live").on("value",(snap)=>{
 
 let d=snap.val()
 
-document.getElementById("voltage").innerText=d.voltage
-document.getElementById("current").innerText=d.current
-document.getElementById("power").innerText=d.power
-document.getElementById("energy").innerText=d.energy
+document.getElementById("voltage").innerText=d.voltage+" V"
+document.getElementById("current").innerText=d.current+" A"
+document.getElementById("power").innerText=d.power+" W"
+document.getElementById("energy").innerText=d.energy+" kWh"
 
-if(d.power>1300)
-document.getElementById("status").innerText="⚠ Melebihi daya 1300VA"
-else
-document.getElementById("status").innerText="Normal"
+powerChart.data.labels.push(new Date().toLocaleTimeString())
+powerChart.data.datasets[0].data.push(d.power)
 
-chart.data.labels.push(new Date().toLocaleTimeString())
-chart.data.datasets[0].data.push(d.power)
+if(powerChart.data.labels.length>20){
+powerChart.data.labels.shift()
+powerChart.data.datasets[0].data.shift()
+}
 
-chart.update()
+powerChart.update()
 
 })
 
-function hitungBiaya(){
+function hitungHarian(){
+
+let tanggal=document.getElementById("tanggal").value
 
 let tarif=1444.7
 
+let total=0
+
 firebase.database().ref("monitoring/history").once("value",(snap)=>{
-
-let todayEnergy=0
-let monthEnergy=0
-
-let now=new Date()
 
 snap.forEach((child)=>{
 
@@ -142,25 +215,91 @@ let d=child.val()
 
 let waktu=new Date(d.timestamp)
 
-if(waktu.toDateString()==now.toDateString())
-todayEnergy+=d.energy
+let t=waktu.toISOString().slice(0,10)
 
-if(waktu.getMonth()==now.getMonth())
-monthEnergy+=d.energy
+if(t==tanggal){
+
+total+=d.energy
+
+}
 
 })
 
-document.getElementById("energy_today").innerText=todayEnergy.toFixed(2)
-document.getElementById("energy_month").innerText=monthEnergy.toFixed(2)
+document.getElementById("energyDay").innerText=total.toFixed(2)
 
-document.getElementById("cost_today").innerText=(todayEnergy*tarif).toFixed(0)
-document.getElementById("cost_month").innerText=(monthEnergy*tarif).toFixed(0)
+document.getElementById("costDay").innerText=(total*tarif).toFixed(0)
 
 })
 
 }
 
-setInterval(hitungBiaya,5000)
+function hitungBulanan(){
+
+let now=new Date()
+
+let tarif=1444.7
+
+let total=0
+
+firebase.database().ref("monitoring/history").once("value",(snap)=>{
+
+snap.forEach((child)=>{
+
+let d=child.val()
+
+let waktu=new Date(d.timestamp)
+
+if(waktu.getMonth()==now.getMonth()){
+
+total+=d.energy
+
+}
+
+})
+
+document.getElementById("energyMonth").innerText=total.toFixed(2)
+
+document.getElementById("costMonth").innerText=(total*tarif).toFixed(0)
+
+})
+
+}
+
+setInterval(hitungBulanan,5000)
+
+function loadHistory(){
+
+firebase.database().ref("monitoring/history")
+.limitToLast(20)
+.once("value",(snap)=>{
+
+let table=""
+
+snap.forEach((child)=>{
+
+let d=child.val()
+
+let waktu=new Date(d.timestamp).toLocaleString()
+
+table+=`
+<tr>
+<td>${waktu}</td>
+<td>${d.voltage}</td>
+<td>${d.current}</td>
+<td>${d.power}</td>
+<td>${d.energy}</td>
+</tr>
+`
+
+})
+
+document.getElementById("history").innerHTML=table
+
+})
+
+}
+
+setInterval(loadHistory,5000)
 
 function exportCSV(){
 
