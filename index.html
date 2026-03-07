@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -19,13 +20,9 @@ text-align:center;
 margin:0;
 }
 
-h2{
-margin-top:20px;
-}
+h2{margin-top:20px;}
 
-#login{
-margin-top:80px;
-}
+#login{margin-top:80px;}
 
 input{
 padding:10px;
@@ -51,17 +48,12 @@ margin-top:20px;
 }
 
 .card{
-width:160px;
+width:170px;
 margin:10px;
 padding:20px;
 background:rgba(255,255,255,0.1);
 border-radius:10px;
 backdrop-filter:blur(10px);
-transition:0.3s;
-}
-
-.card:hover{
-transform:scale(1.05);
 }
 
 .value{
@@ -77,7 +69,6 @@ margin-top:20px;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -85,12 +76,9 @@ margin-top:20px;
 <h2>⚡ Energy Monitoring Dashboard</h2>
 
 <div id="login">
-
 <input id="email" placeholder="Email"><br><br>
 <input id="password" type="password" placeholder="Password"><br><br>
-
 <button onclick="login()">Login</button>
-
 </div>
 
 <div id="dashboard" style="display:none">
@@ -100,15 +88,25 @@ margin-top:20px;
 <div class="card">Voltage<div id="voltage" class="value">0</div></div>
 <div class="card">Current<div id="current" class="value">0</div></div>
 <div class="card">Power<div id="power" class="value">0</div></div>
-<div class="card">Energy (kWh)<div id="energy" class="value">0</div></div>
+<div class="card">Energy<div id="energy" class="value">0</div></div>
 <div class="card">Frequency<div id="frequency" class="value">0</div></div>
 <div class="card">PF<div id="pf" class="value">0</div></div>
-<div class="card">Total Biaya<div id="cost" class="value">Rp 0</div></div>
+<div class="card">Biaya<div id="cost" class="value">Rp0</div></div>
+
+<div class="card">
+Power Limit
+<input id="limit" placeholder="Watt">
+<button onclick="setLimit()">Set</button>
+</div>
+
+<div class="card">
+Energi 24 Jam
+<div id="energy24" class="value">0</div>
+</div>
 
 </div>
 
 <br>
-
 <button onclick="exportCSV()">Export CSV</button>
 
 <canvas id="chart" width="900" height="400"></canvas>
@@ -136,6 +134,7 @@ const tarif = 415;
 
 let chart;
 let historyData=[];
+let powerLimit=localStorage.getItem("limit")||0;
 
 function login(){
 
@@ -157,12 +156,8 @@ loadChart();
 }
 
 function setValue(id,val){
-
 if(val==null) val=0;
-
-document.getElementById(id).innerText=
-Number(val).toFixed(1);
-
+document.getElementById(id).innerText=Number(val).toFixed(2);
 }
 
 function loadLive(){
@@ -170,7 +165,6 @@ function loadLive(){
 db.ref("monitoring/live").on("value",(snap)=>{
 
 let d=snap.val();
-
 if(!d) return;
 
 setValue("voltage",d.voltage);
@@ -180,12 +174,14 @@ setValue("energy",d.energy);
 setValue("frequency",d.frequency);
 setValue("pf",d.pf);
 
-let energy = Number(d.energy);
+let biaya=d.energy*tarif;
+document.getElementById("cost").innerText="Rp "+biaya.toLocaleString();
 
-let biaya = energy * tarif;
-
-document.getElementById("cost").innerText =
-"Rp " + biaya.toLocaleString();
+if(powerLimit>0 && d.power>powerLimit){
+document.body.style.background="red";
+}else{
+document.body.style.background="linear-gradient(135deg,#1e3c72,#2a5298)";
+}
 
 });
 
@@ -194,7 +190,7 @@ document.getElementById("cost").innerText =
 function loadChart(){
 
 db.ref("monitoring/history")
-.limitToLast(100)
+.limitToLast(200)
 .on("value",(snap)=>{
 
 let labels=[];
@@ -206,24 +202,20 @@ snap.forEach(child=>{
 
 let d=child.val();
 
-if(d){
-
 let t=new Date(d.timestamp*1000);
 
 labels.push(t.toLocaleTimeString());
-
 power.push(Number(d.power));
 
 historyData.push({
-time:t.toLocaleString(),
+time:t,
 power:d.power
 });
-
-}
 
 });
 
 drawChart(labels,power);
+energyLast24Hours();
 
 });
 
@@ -244,20 +236,42 @@ label:'Power (W)',
 data:data,
 borderColor:'#00ffcc',
 backgroundColor:'rgba(0,255,200,0.2)',
-borderWidth:2,
-tension:0.4,
 fill:true
 }]
-},
-options:{
-responsive:true,
-scales:{
-y:{
-beginAtZero:true
-}
-}
 }
 });
+
+}
+
+function energyLast24Hours(){
+
+let now=Date.now();
+let oneDay=24*60*60*1000;
+let total=0;
+
+historyData.forEach(d=>{
+
+let t=d.time.getTime();
+
+if(now-t<=oneDay){
+total+=Number(d.power);
+}
+
+});
+
+let kwh=(total/1000).toFixed(2);
+
+document.getElementById("energy24").innerText=kwh+" kWh";
+
+}
+
+function setLimit(){
+
+powerLimit=document.getElementById("limit").value;
+
+localStorage.setItem("limit",powerLimit);
+
+alert("Power limit saved");
 
 }
 
@@ -283,3 +297,4 @@ a.click();
 
 </body>
 </html>
+```
