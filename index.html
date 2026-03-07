@@ -1,17 +1,10 @@
 <!DOCTYPE html>
-
 <html>
-
 <head>
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<title>PLN Energy Monitor</title>
+<title>Smart Energy Monitor</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -20,184 +13,122 @@
 
 body{
 font-family:Arial;
-margin:0;
-background:#f1f4f9;
-}
-
-.header{
-background:#1976d2;
+background:#0f172a;
 color:white;
-padding:20px;
-text-align:center;
-font-size:24px;
-}
-
-.loginBox{
-width:300px;
-margin:120px auto;
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 5px 15px rgba(0,0,0,0.2);
 text-align:center;
 }
 
-.loginBox input{
+.container{
 width:90%;
-padding:10px;
-margin:10px 0;
-}
-
-.loginBox button{
-width:100%;
-padding:10px;
-background:#1976d2;
-color:white;
-border:none;
-border-radius:5px;
-}
-
-.dashboard{
-display:none;
-padding:20px;
-}
-
-.cards{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-gap:15px;
+margin:auto;
 }
 
 .card{
-background:white;
+background:#1e293b;
 padding:20px;
-border-radius:10px;
-box-shadow:0 3px 10px rgba(0,0,0,0.1);
-text-align:center;
+margin:10px;
+border-radius:15px;
+display:inline-block;
+width:200px;
 }
 
 .value{
-font-size:26px;
+font-size:28px;
 font-weight:bold;
-color:#1976d2;
 }
 
-.section{
-margin-top:20px;
-background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 3px 10px rgba(0,0,0,0.1);
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-}
-
-table th{
-background:#1976d2;
-color:white;
-padding:8px;
-}
-
-table td{
-padding:8px;
-border-bottom:1px solid #ddd;
-text-align:center;
+.loginBox{
+margin-top:100px;
 }
 
 button{
-padding:10px 15px;
-background:#1976d2;
-color:white;
+padding:10px;
 border:none;
-border-radius:5px;
+border-radius:8px;
+background:#38bdf8;
+color:white;
+cursor:pointer;
+}
+
+input{
+padding:10px;
+margin:5px;
+border-radius:8px;
+border:none;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
-⚡ PLN Energy Monitoring
-</div>
-
 <div id="loginPage" class="loginBox">
 
-<h3>Login</h3>
+<h2>Login Energy Monitor</h2>
 
-<input id="email" placeholder="Email">
-<input id="pass" type="password" placeholder="Password">
+<input id="email" placeholder="Email"><br>
+<input id="password" type="password" placeholder="Password"><br>
 
 <button onclick="login()">Login</button>
 
-<p id="loginStatus"></p>
-
 </div>
 
-<div id="dashboard" class="dashboard">
 
-<div class="cards">
+<div id="dashboard" style="display:none">
+
+<h1>⚡ Smart Energy Monitor</h1>
+
+<div class="container">
 
 <div class="card">
 Voltage
-<div class="value" id="voltage">0 V</div>
+<div id="voltage" class="value">0</div>
 </div>
 
 <div class="card">
 Current
-<div class="value" id="current">0 A</div>
+<div id="current" class="value">0</div>
 </div>
 
 <div class="card">
 Power
-<div class="value" id="power">0 W</div>
+<div id="power" class="value">0</div>
 </div>
 
 <div class="card">
 Energy
-<div class="value" id="energy">0 kWh</div>
+<div id="energy" class="value">0</div>
+</div>
+
+<div class="card">
+Daily Cost
+<div id="dailyCost" class="value">Rp 0</div>
+</div>
+
+<div class="card">
+Monthly Cost
+<div id="monthlyCost" class="value">Rp 0</div>
 </div>
 
 </div>
 
-<div class="section">
+<br><br>
 
-<h3>Grafik Daya</h3>
+<h2>Power Usage Graph</h2>
 
 <canvas id="powerChart"></canvas>
 
-</div>
+<br>
 
-<div class="section">
-
-<h3>Riwayat Konsumsi</h3>
-
-<table>
-
-<tr>
-<th>Waktu</th>
-<th>Voltage</th>
-<th>Current</th>
-<th>Power</th>
-<th>Energy</th>
-</tr>
-
-<tbody id="history"></tbody>
-
-</table>
+<button onclick="exportCSV()">Export CSV</button>
 
 </div>
 
-</div>
 
 <script>
 
+// FIREBASE CONFIG ANDA
 const firebaseConfig = {
-
 apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
 authDomain: "rohmadafi.firebaseapp.com",
 databaseURL: "https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -205,105 +136,147 @@ projectId: "rohmadafi",
 storageBucket: "rohmadafi.firebasestorage.app",
 messagingSenderId: "285538177933",
 appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
-
 };
 
 firebase.initializeApp(firebaseConfig);
 
+const db = firebase.database();
+
+
+// LOGIN
+
 function login(){
 
 let email=document.getElementById("email").value
-let pass=document.getElementById("pass").value
+let password=document.getElementById("password").value
 
-firebase.auth().signInWithEmailAndPassword(email,pass)
+firebase.auth().signInWithEmailAndPassword(email,password)
 
 .then(()=>{
+
 document.getElementById("loginPage").style.display="none"
 document.getElementById("dashboard").style.display="block"
-loadData()
+
+startMonitoring()
+
 })
 
-.catch((error)=>{
-document.getElementById("loginStatus").innerText="Login gagal"
-})
+.catch(e=>alert(e.message))
 
 }
 
-let chart=new Chart(
-document.getElementById("powerChart"),
-{
+
+
+// CHART
+
+let ctx=document.getElementById("powerChart").getContext("2d")
+
+let powerChart=new Chart(ctx,{
 type:'line',
 data:{
 labels:[],
 datasets:[{
-label:'Power',
+label:'Power (W)',
 data:[],
-borderColor:'#1976d2',
-backgroundColor:'rgba(25,118,210,0.2)',
-fill:true
+borderColor:'yellow',
+backgroundColor:'rgba(255,255,0,0.2)'
 }]
 }
 })
 
-function loadData(){
 
-firebase.database().ref("monitoring/live").on("value",(snap)=>{
 
-let d=snap.val()
+// MONITORING REALTIME
 
-if(d){
+function startMonitoring(){
 
-document.getElementById("voltage").innerText=d.voltage+" V"
-document.getElementById("current").innerText=d.current+" A"
-document.getElementById("power").innerText=d.power+" W"
-document.getElementById("energy").innerText=d.energy+" kWh"
+db.ref("monitoring").on("value",snapshot=>{
 
-chart.data.labels.push(new Date().toLocaleTimeString())
-chart.data.datasets[0].data.push(d.power)
+let data=snapshot.val()
 
-if(chart.data.labels.length>20){
+if(!data) return
 
-chart.data.labels.shift()
-chart.data.datasets[0].data.shift()
+document.getElementById("voltage").innerText=data.voltage+" V"
+document.getElementById("current").innerText=data.current+" A"
+document.getElementById("power").innerText=data.power+" W"
+document.getElementById("energy").innerText=data.energy+" kWh"
+
+updateChart(data.power)
+
+calculateCost(data.energy)
+
+})
 
 }
 
-chart.update()
+
+
+// UPDATE CHART
+
+function updateChart(power){
+
+let time=new Date().toLocaleTimeString()
+
+powerChart.data.labels.push(time)
+powerChart.data.datasets[0].data.push(power)
+
+if(powerChart.data.labels.length>20){
+
+powerChart.data.labels.shift()
+powerChart.data.datasets[0].data.shift()
 
 }
 
+powerChart.update()
+
+}
+
+
+
+// HITUNG BIAYA LISTRIK
+// Tarif 1300VA ≈ Rp 1444 / kWh
+
+function calculateCost(energy){
+
+let tariff=1444
+
+let cost=energy*tariff
+
+document.getElementById("dailyCost").innerText="Rp "+cost.toFixed(0)
+
+document.getElementById("monthlyCost").innerText="Rp "+(cost*30).toFixed(0)
+
+}
+
+
+
+// EXPORT CSV
+
+function exportCSV(){
+
+let rows=[["Time","Power"]]
+
+powerChart.data.labels.forEach((t,i)=>{
+
+rows.push([t,powerChart.data.datasets[0].data[i]])
+
 })
 
-firebase.database().ref("monitoring/history")
-.limitToLast(10)
-.on("value",(snap)=>{
+let csv=rows.map(e=>e.join(",")).join("\n")
 
-let table=""
+let blob=new Blob([csv])
 
-snap.forEach((child)=>{
+let a=document.createElement("a")
 
-let d=child.val()
+a.href=URL.createObjectURL(blob)
 
-table+=`
-<tr>
-<td>${new Date(d.timestamp).toLocaleString()}</td>
-<td>${d.voltage}</td>
-<td>${d.current}</td>
-<td>${d.power}</td>
-<td>${d.energy}</td>
-</tr>
-`
+a.download="energy.csv"
 
-})
-
-document.getElementById("history").innerHTML=table
-
-})
+a.click()
 
 }
 
 </script>
 
 </body>
-
 </html>
