@@ -1,14 +1,17 @@
 <!DOCTYPE html>
+
 <html>
 
 <head>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<title>PLN Energy Monitor</title>
+<title>PLN Smart Energy Monitor</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -17,28 +20,80 @@
 
 body{
 font-family:Arial;
-background:#f5f5f5;
-margin:20px;
+background:linear-gradient(135deg,#005bea,#00c6fb);
+margin:0;
+padding:20px;
+color:white;
+}
+
+h1{
+text-align:center;
+}
+
+.dashboard{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+margin-top:20px;
 }
 
 .card{
 background:white;
+color:#333;
+border-radius:12px;
 padding:20px;
-margin:10px;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-gap:10px;
+box-shadow:0 5px 15px rgba(0,0,0,0.2);
+text-align:center;
 }
 
 .value{
-font-size:25px;
+font-size:28px;
 font-weight:bold;
-color:#0077cc;
+color:#0077ff;
+}
+
+.section{
+background:white;
+color:#333;
+margin-top:20px;
+padding:20px;
+border-radius:12px;
+box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+
+button{
+background:#0077ff;
+color:white;
+border:none;
+padding:10px 15px;
+border-radius:6px;
+cursor:pointer;
+}
+
+button:hover{
+background:#005ad6;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+}
+
+table th{
+background:#0077ff;
+color:white;
+padding:8px;
+}
+
+table td{
+padding:6px;
+border-bottom:1px solid #ddd;
+text-align:center;
+}
+
+input{
+padding:8px;
+margin:5px;
 }
 
 </style>
@@ -47,9 +102,11 @@ color:#0077cc;
 
 <body>
 
-<h2>⚡ PLN Energy Monitoring</h2>
+<h1>⚡ PLN Energy Monitoring</h1>
 
-<div class="card">
+<div class="section">
+
+<h3>Login</h3>
 
 <input id="email" placeholder="email">
 <input id="pass" type="password" placeholder="password">
@@ -58,7 +115,7 @@ color:#0077cc;
 
 </div>
 
-<div class="grid">
+<div class="dashboard">
 
 <div class="card">
 Voltage
@@ -82,7 +139,7 @@ Energy
 
 </div>
 
-<div class="card">
+<div class="section">
 
 <h3>Grafik Daya Realtime</h3>
 
@@ -90,43 +147,36 @@ Energy
 
 </div>
 
-<div class="card">
+<div class="section">
 
-<h3>Pilih Tanggal Konsumsi</h3>
+<h3>Konsumsi Harian</h3>
 
 <input type="date" id="tanggal">
 
-<button onclick="hitungHarian()">Lihat Konsumsi</button>
+<button onclick="hitungHarian()">Tampilkan</button>
 
-<p>Energi Hari Ini : <b id="energyDay">0</b> kWh</p>
+<p>Energi : <b id="energyDay">0</b> kWh</p>
 
-<p>Biaya Hari Ini : Rp <b id="costDay">0</b></p>
+<p>Biaya : Rp <b id="costDay">0</b></p>
 
 </div>
 
-<div class="card">
+<div class="section">
 
 <h3>Konsumsi Bulanan</h3>
 
-<p>Energi Bulan Ini : <b id="energyMonth">0</b> kWh</p>
+<p>Energi bulan ini : <b id="energyMonth">0</b> kWh</p>
 
-<p>Biaya Bulan Ini : Rp <b id="costMonth">0</b></p>
-
-</div>
-
-<div class="card">
-
-<h3>Grafik Konsumsi Energi</h3>
-
-<canvas id="energyChart"></canvas>
+<p>Biaya bulan ini : Rp <b id="costMonth">0</b></p>
 
 </div>
 
-<div class="card">
+<div class="section">
 
 <h3>Riwayat Konsumsi</h3>
 
-<table border="1" width="100%">
+<table>
+
 <tr>
 <th>Waktu</th>
 <th>Voltage</th>
@@ -141,7 +191,11 @@ Energy
 
 </div>
 
+<div class="section">
+
 <button onclick="exportCSV()">Export CSV</button>
+
+</div>
 
 <script>
 
@@ -168,13 +222,19 @@ firebase.auth().signInWithEmailAndPassword(email,pass)
 
 }
 
-let powerChart=new Chart(
+let chart=new Chart(
 document.getElementById("powerChart"),
 {
 type:'line',
 data:{
 labels:[],
-datasets:[{label:'Power',data:[]}]
+datasets:[{
+label:'Power (W)',
+data:[],
+borderColor:'#0077ff',
+backgroundColor:'rgba(0,119,255,0.2)',
+fill:true
+}]
 }
 })
 
@@ -187,24 +247,24 @@ document.getElementById("current").innerText=d.current+" A"
 document.getElementById("power").innerText=d.power+" W"
 document.getElementById("energy").innerText=d.energy+" kWh"
 
-powerChart.data.labels.push(new Date().toLocaleTimeString())
-powerChart.data.datasets[0].data.push(d.power)
+chart.data.labels.push(new Date().toLocaleTimeString())
+chart.data.datasets[0].data.push(d.power)
 
-if(powerChart.data.labels.length>20){
-powerChart.data.labels.shift()
-powerChart.data.datasets[0].data.shift()
+if(chart.data.labels.length>20){
+
+chart.data.labels.shift()
+chart.data.datasets[0].data.shift()
+
 }
 
-powerChart.update()
+chart.update()
 
 })
 
 function hitungHarian(){
 
 let tanggal=document.getElementById("tanggal").value
-
 let tarif=1444.7
-
 let total=0
 
 firebase.database().ref("monitoring/history").once("value",(snap)=>{
@@ -212,12 +272,9 @@ firebase.database().ref("monitoring/history").once("value",(snap)=>{
 snap.forEach((child)=>{
 
 let d=child.val()
-
 let waktu=new Date(d.timestamp)
 
-let t=waktu.toISOString().slice(0,10)
-
-if(t==tanggal){
+if(waktu.toISOString().slice(0,10)==tanggal){
 
 total+=d.energy
 
@@ -226,7 +283,6 @@ total+=d.energy
 })
 
 document.getElementById("energyDay").innerText=total.toFixed(2)
-
 document.getElementById("costDay").innerText=(total*tarif).toFixed(0)
 
 })
@@ -236,9 +292,7 @@ document.getElementById("costDay").innerText=(total*tarif).toFixed(0)
 function hitungBulanan(){
 
 let now=new Date()
-
 let tarif=1444.7
-
 let total=0
 
 firebase.database().ref("monitoring/history").once("value",(snap)=>{
@@ -246,7 +300,6 @@ firebase.database().ref("monitoring/history").once("value",(snap)=>{
 snap.forEach((child)=>{
 
 let d=child.val()
-
 let waktu=new Date(d.timestamp)
 
 if(waktu.getMonth()==now.getMonth()){
@@ -258,7 +311,6 @@ total+=d.energy
 })
 
 document.getElementById("energyMonth").innerText=total.toFixed(2)
-
 document.getElementById("costMonth").innerText=(total*tarif).toFixed(0)
 
 })
@@ -279,11 +331,9 @@ snap.forEach((child)=>{
 
 let d=child.val()
 
-let waktu=new Date(d.timestamp).toLocaleString()
-
 table+=`
 <tr>
-<td>${waktu}</td>
+<td>${new Date(d.timestamp).toLocaleString()}</td>
 <td>${d.voltage}</td>
 <td>${d.current}</td>
 <td>${d.power}</td>
@@ -332,5 +382,4 @@ a.click()
 </script>
 
 </body>
-
 </html>
