@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html>
 
 <head>
@@ -9,11 +8,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -41,7 +37,6 @@ width:320px;
 margin:auto;
 margin-top:120px;
 background:rgba(255,255,255,0.1);
-backdrop-filter:blur(10px);
 padding:30px;
 border-radius:10px;
 text-align:center;
@@ -83,11 +78,6 @@ background:rgba(255,255,255,0.1);
 padding:20px;
 border-radius:10px;
 text-align:center;
-transition:0.3s;
-}
-
-.card:hover{
-transform:scale(1.05);
 }
 
 .value{
@@ -99,33 +89,54 @@ margin-top:10px;
 /* PUMP */
 
 .pump{
-margin-top:20px;
+margin-top:30px;
 text-align:center;
 }
 
-.pump img{
-width:100px;
-transition:0.5s;
+.pumpIcon{
+position:relative;
+display:inline-block;
 }
 
-.on img{
-filter:drop-shadow(0 0 15px #00ff9d);
+.pumpIcon img{
+width:110px;
 }
 
-.off img{
-filter:grayscale(100%);
+.water{
+position:absolute;
+bottom:-20px;
+left:50%;
+transform:translateX(-50%);
+width:12px;
+height:0;
+background:#00eaff;
+border-radius:10px;
+}
+
+.on .water{
+height:80px;
+animation:flow 0.5s infinite alternate;
+}
+
+.off .water{
+height:0;
+}
+
+@keyframes flow{
+0%{transform:translateX(-50%) scaleY(1)}
+100%{transform:translateX(-50%) scaleY(1.2)}
 }
 
 /* CHART */
 
 .chart{
-margin-top:20px;
+margin-top:30px;
 background:white;
 border-radius:10px;
 padding:20px;
 }
 
-/* DATE */
+/* HISTORY */
 
 .history{
 margin-top:20px;
@@ -157,45 +168,14 @@ text-align:center;
 
 <div class="grid">
 
-<div class="card">
-Voltage
-<div class="value" id="voltage">0</div>
-</div>
-
-<div class="card">
-Current
-<div class="value" id="current">0</div>
-</div>
-
-<div class="card">
-Power
-<div class="value" id="power">0</div>
-</div>
-
-<div class="card">
-Energy
-<div class="value" id="energy">0</div>
-</div>
-
-<div class="card">
-Frequency
-<div class="value" id="freq">0</div>
-</div>
-
-<div class="card">
-Power Factor
-<div class="value" id="pf">0</div>
-</div>
-
-<div class="card">
-Tarif PLN
-<div class="value" id="tarif">0</div>
-</div>
-
-<div class="card">
-Estimasi Biaya
-<div class="value" id="biayaTotal">0</div>
-</div>
+<div class="card">Voltage<div class="value" id="voltage">0</div></div>
+<div class="card">Current<div class="value" id="current">0</div></div>
+<div class="card">Power<div class="value" id="power">0</div></div>
+<div class="card">Energy<div class="value" id="energy">0</div></div>
+<div class="card">Frequency<div class="value" id="freq">0</div></div>
+<div class="card">Power Factor<div class="value" id="pf">0</div></div>
+<div class="card">Tarif PLN<div class="value" id="tarif">0</div></div>
+<div class="card">Estimasi Biaya<div class="value" id="biayaTotal">0</div></div>
 
 </div>
 
@@ -203,7 +183,13 @@ Estimasi Biaya
 
 <h3>Pompa Air</h3>
 
+<div class="pumpIcon">
+
 <img src="https://cdn-icons-png.flaticon.com/512/2966/2966489.png">
+
+<div class="water"></div>
+
+</div>
 
 <br><br>
 
@@ -213,7 +199,7 @@ Estimasi Biaya
 
 <div class="history">
 
-<h3>Lihat Data Berdasarkan Tanggal</h3>
+<h3>History Berdasarkan Tanggal</h3>
 
 <input type="date" id="tanggal">
 
@@ -222,7 +208,9 @@ Estimasi Biaya
 </div>
 
 <div class="chart">
+
 <canvas id="chart"></canvas>
+
 </div>
 
 </div>
@@ -250,19 +238,31 @@ const db=firebase.database();
 
 let tarifKwh=1444.7
 
+/* FORMAT RUPIAH */
+
+function rupiah(n){
+
+return new Intl.NumberFormat("id-ID",{
+style:"currency",
+currency:"IDR",
+maximumFractionDigits:0
+}).format(n)
+
+}
+
 /* LOGIN */
 
 function login(){
 
-let email=document.getElementById("email").value;
-let password=document.getElementById("password").value;
+let email=document.getElementById("email").value
+let password=document.getElementById("password").value
 
 auth.signInWithEmailAndPassword(email,password)
 
 .then(()=>{
 
-document.getElementById("login").style.display="none";
-document.getElementById("dashboard").style.display="block";
+document.getElementById("login").style.display="none"
+document.getElementById("dashboard").style.display="block"
 
 startMonitor()
 
@@ -276,30 +276,22 @@ startMonitor()
 
 let ctx=document.getElementById("chart").getContext("2d")
 
-let gradient=ctx.createLinearGradient(0,0,0,400)
-gradient.addColorStop(0,"#00eaff")
-gradient.addColorStop(1,"#007bff")
-
 let chart=new Chart(ctx,{
-
 type:"line",
-
 data:{
 labels:[],
 datasets:[{
 label:"Power (W)",
 data:[],
 borderColor:"#00eaff",
-backgroundColor:gradient,
+backgroundColor:"rgba(0,234,255,0.2)",
 fill:true,
-tension:0.4,
-pointRadius:2
+tension:0.4
 }]
 }
-
 })
 
-/* START MONITOR */
+/* MONITOR DATA */
 
 function startMonitor(){
 
@@ -307,19 +299,19 @@ db.ref("monitoring/live").on("value",snap=>{
 
 let d=snap.val()
 
-document.getElementById("voltage").innerHTML=d.voltage+" V"
-document.getElementById("current").innerHTML=d.current+" A"
-document.getElementById("power").innerHTML=d.power+" W"
-document.getElementById("energy").innerHTML=d.energy_total+" kWh"
+document.getElementById("voltage").innerHTML=parseFloat(d.voltage).toFixed(1)+" V"
+document.getElementById("current").innerHTML=parseFloat(d.current).toFixed(1)+" A"
+document.getElementById("power").innerHTML=parseFloat(d.power).toFixed(1)+" W"
+document.getElementById("energy").innerHTML=parseFloat(d.energy_total).toFixed(1)+" kWh"
 
-document.getElementById("freq").innerHTML=d.frequency+" Hz"
-document.getElementById("pf").innerHTML=d.pf
+document.getElementById("freq").innerHTML=parseFloat(d.frequency).toFixed(1)+" Hz"
+document.getElementById("pf").innerHTML=parseFloat(d.pf).toFixed(1)
 
-document.getElementById("tarif").innerHTML="Rp "+tarifKwh+"/kWh"
+document.getElementById("tarif").innerHTML=rupiah(tarifKwh)+"/kWh"
 
-let biaya=(d.energy_total*tarifKwh).toFixed(0)
+let biaya=d.energy_total*tarifKwh
 
-document.getElementById("biayaTotal").innerHTML="Rp "+biaya
+document.getElementById("biayaTotal").innerHTML=rupiah(biaya)
 
 updateChart(d.power)
 
@@ -383,11 +375,11 @@ chart.update()
 
 }
 
-/* HISTORY BERDASARKAN TANGGAL */
+/* HISTORY */
 
 function loadHistory(){
 
-let t=document.getElementById("tanggal").value
+let tanggal=document.getElementById("tanggal").value
 
 chart.data.labels=[]
 chart.data.datasets[0].data=[]
@@ -398,9 +390,9 @@ snap.forEach(child=>{
 
 let d=child.val()
 
-let tanggal=t.split("-").reverse().join("-")
+let t=tanggal.split("-").reverse().join("-")
 
-if(d.time.includes(tanggal)){
+if(d.time.includes(t)){
 
 updateChart(d.power)
 
