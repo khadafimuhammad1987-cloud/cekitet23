@@ -3,262 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Monitoring Dashboard</title>
+    <title>Login - Monitoring Dashboard</title>
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        .card-dashboard {
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .login-card {
+            background: white;
             border-radius: 15px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .login-header h2 {
+            color: #333;
+            font-weight: 600;
+        }
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+        .form-control {
+            height: 50px;
+            border-radius: 10px;
+            border: 1px solid #ddd;
+            padding-left: 45px;
+            margin-bottom: 20px;
+        }
+        .input-icon {
+            position: relative;
+        }
+        .input-icon i {
+            position: absolute;
+            left: 15px;
+            top: 17px;
+            color: #667eea;
+            font-size: 18px;
+        }
+        .btn-login {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            height: 50px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            width: 100%;
+            cursor: pointer;
             transition: transform 0.3s;
         }
-        .card-dashboard:hover {
-            transform: translateY(-5px);
+        .btn-login:hover {
+            transform: translateY(-2px);
+            color: white;
         }
-        .value-large {
-            font-size: 2.5rem;
-            font-weight: bold;
+        .alert {
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
         }
-        .status-badge {
-            font-size: 1.2rem;
-            padding: 10px 20px;
+        .register-link {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
         }
-        .bg-gradient-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .register-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
         }
-        .bg-gradient-success {
-            background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-        }
-        .bg-gradient-warning {
-            background: linear-gradient(135deg, #fad0c4 0%, #ffd1ff 100%);
-        }
-        .bg-gradient-info {
-            background: linear-gradient(135deg, #a1c4fd 0%, #c2e9fb 100%);
-        }
-        .text-white {
-            color: white !important;
+        .register-link a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
-<body class="bg-light">
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-chart-line me-2"></i>
-                Monitoring Dashboard
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <i class="fas fa-chart-line fa-3x" style="color: #667eea; margin-bottom: 20px;"></i>
+            <h2>Monitoring Dashboard</h2>
+            <p>Silakan login untuk melanjutkan</p>
+        </div>
+        
+        <div class="alert alert-danger" id="errorAlert" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span id="errorMessage"></span>
+        </div>
+
+        <div class="alert alert-success" id="successAlert" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span id="successMessage"></span>
+        </div>
+
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="input-icon">
+                <i class="fas fa-envelope"></i>
+                <input type="email" class="form-control" id="email" placeholder="Email" required>
+            </div>
+            <div class="input-icon">
+                <i class="fas fa-lock"></i>
+                <input type="password" class="form-control" id="password" placeholder="Password" required>
+            </div>
+            <button type="submit" class="btn-login" id="loginBtn">
+                <span id="loginText">Login</span>
+                <span id="loginSpinner" style="display: none;">
+                    <i class="fas fa-spinner fa-spin"></i> Loading...
+                </span>
             </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <span class="nav-link" id="current-time">
-                            <i class="fas fa-clock me-2"></i>
-                            Loading...
-                        </span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+        </form>
 
-    <!-- Main Content -->
-    <div class="container">
-        <!-- Control Panel -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card card-dashboard">
-                    <div class="card-header bg-white">
-                        <h5 class="mb-0">
-                            <i class="fas fa-sliders-h me-2 text-primary"></i>
-                            Panel Kontrol Pompa
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="row align-items-center">
-                            <div class="col-md-6">
-                                <div class="d-flex align-items-center">
-                                    <span class="me-3 fw-bold">Status Pompa:</span>
-                                    <span id="pump-status" class="badge bg-secondary status-badge">
-                                        <i class="fas fa-circle-notch fa-spin me-2"></i>
-                                        Loading...
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                                <button id="btn-toggle-pump" class="btn btn-primary btn-lg" onclick="togglePump()">
-                                    <i class="fas fa-power-off me-2"></i>
-                                    Toggle Pompa
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="register-link">
+            <p>Belum punya akun? <a href="#" onclick="showRegister()">Daftar disini</a></p>
         </div>
+    </div>
 
-        <!-- Real-time Monitoring Cards -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-3">
-                <div class="card card-dashboard bg-gradient-info text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-white-50">Tegangan (V)</h6>
-                                <h2 class="mb-0" id="voltage">0</h2>
-                            </div>
-                            <i class="fas fa-bolt fa-3x text-white-50"></i>
+    <!-- Register Modal -->
+    <div class="modal fade" id="registerModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Register Akun Baru</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="registerForm" onsubmit="handleRegister(event)">
+                        <div class="mb-3">
+                            <label for="regEmail" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="regEmail" required>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-dashboard bg-gradient-success text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-white-50">Arus (A)</h6>
-                                <h2 class="mb-0" id="current">0</h2>
-                            </div>
-                            <i class="fas fa-wave-square fa-3x text-white-50"></i>
+                        <div class="mb-3">
+                            <label for="regPassword" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="regPassword" required minlength="6">
+                            <small class="text-muted">Minimal 6 karakter</small>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-dashboard bg-gradient-warning text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-white-50">Daya (W)</h6>
-                                <h2 class="mb-0" id="power">0</h2>
-                            </div>
-                            <i class="fas fa-chart-bar fa-3x text-white-50"></i>
+                        <div class="mb-3">
+                            <label for="regRole" class="form-label">Role</label>
+                            <select class="form-control" id="regRole">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
                         </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-dashboard bg-gradient-primary text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-white-50">Frekuensi (Hz)</h6>
-                                <h2 class="mb-0" id="frequency">0</h2>
-                            </div>
-                            <i class="fas fa-clock fa-3x text-white-50"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4 mb-4">
-            <div class="col-md-4">
-                <div class="card card-dashboard">
-                    <div class="card-body">
-                        <h6 class="text-muted">Power Factor</h6>
-                        <h2 class="mb-0" id="pf">0</h2>
-                        <small class="text-success">Normal</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card card-dashboard">
-                    <div class="card-body">
-                        <h6 class="text-muted">Energi Total (kWh)</h6>
-                        <h2 class="mb-0" id="energy_total">0</h2>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="card card-dashboard">
-                    <div class="card-body">
-                        <h6 class="text-muted">Energi Terpakai</h6>
-                        <h2 class="mb-0" id="energy_used">0</h2>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Biaya Cards -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-3">
-                <div class="card card-dashboard border-warning">
-                    <div class="card-body">
-                        <h6 class="text-muted">Biaya per Jam</h6>
-                        <h3 class="text-warning mb-0" id="biaya_per_jam">Rp 0</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-dashboard border-success">
-                    <div class="card-body">
-                        <h6 class="text-muted">Biaya per Hari</h6>
-                        <h3 class="text-success mb-0" id="biaya_per_hari">Rp 0</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-dashboard border-info">
-                    <div class="card-body">
-                        <h6 class="text-muted">Biaya per Bulan</h6>
-                        <h3 class="text-info mb-0" id="biaya_per_bulan">Rp 0</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card card-dashboard border-danger">
-                    <div class="card-body">
-                        <h6 class="text-muted">Biaya Total</h6>
-                        <h3 class="text-danger mb-0" id="biaya_total">Rp 0</h3>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Row -->
-        <div class="row g-4 mb-4">
-            <div class="col-md-6">
-                <div class="card card-dashboard">
-                    <div class="card-header bg-white">
-                        <h6 class="mb-0">Grafik Daya Real-time</h6>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="powerChart"></canvas>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card card-dashboard">
-                    <div class="card-header bg-white">
-                        <h6 class="mb-0">Histori Monitoring</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive" style="max-height: 300px;">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Waktu</th>
-                                        <th>Tegangan</th>
-                                        <th>Arus</th>
-                                        <th>Daya</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="history-table">
-                                    <tr>
-                                        <td colspan="4" class="text-center">Loading...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                        <button type="submit" class="btn btn-primary w-100">Register</button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -266,9 +165,12 @@
 
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Main JavaScript -->
     <script>
         // Firebase configuration
         const firebaseConfig = {
@@ -283,157 +185,176 @@
 
         // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
         const database = firebase.database();
 
-        // Chart initialization
-        const ctx = document.getElementById('powerChart').getContext('2d');
-        const powerChart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: [],
-                datasets: [{
-                    label: 'Daya (W)',
-                    data: [],
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
+        // Check if user is already logged in
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // User is logged in, redirect to dashboard
+                window.location.href = 'dashboard.html';
             }
         });
 
-        // Update time function
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').innerHTML = 
-                `<i class="fas fa-clock me-2"></i>${now.toLocaleString('id-ID')}`;
-        }
-        setInterval(updateTime, 1000);
-
-        // Format currency
-        function formatCurrency(value) {
-            return new Intl.NumberFormat('id-ID', { 
-                style: 'currency', 
-                currency: 'IDR',
-                minimumFractionDigits: 0,
-                maximumFractionDigits: 0
-            }).format(value);
-        }
-
-        // Listen for live data
-        const liveRef = database.ref('monitoring/history/live');
-        liveRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) {
-                // Update all fields
-                document.getElementById('voltage').textContent = data.voltage || 0;
-                document.getElementById('current').textContent = data.current || 0;
-                document.getElementById('power').textContent = data.power || 0;
-                document.getElementById('frequency').textContent = data.frequency || 0;
-                document.getElementById('pf').textContent = data.pf || 0;
-                document.getElementById('energy_total').textContent = data.energy_total || 0;
-                document.getElementById('energy_used').textContent = data.energy_used || 0;
-                
-                // Update biaya
-                document.getElementById('biaya_per_jam').textContent = formatCurrency(data.biaya_per_jam || 0);
-                document.getElementById('biaya_per_hari').textContent = formatCurrency(data.biaya_per_hari || 0);
-                document.getElementById('biaya_per_bulan').textContent = formatCurrency(data.biaya_per_bulan || 0);
-                document.getElementById('biaya_total').textContent = formatCurrency(data.biaya_total || 0);
-
-                // Update chart
-                const now = new Date();
-                const timeLabel = now.toLocaleTimeString();
-                
-                if (powerChart.data.labels.length > 20) {
-                    powerChart.data.labels.shift();
-                    powerChart.data.datasets[0].data.shift();
-                }
-                
-                powerChart.data.labels.push(timeLabel);
-                powerChart.data.datasets[0].data.push(data.power || 0);
-                powerChart.update();
-            }
-        });
-
-        // Listen for pump control
-        const pumpRef = database.ref('monitoring/control/pompa');
-        pumpRef.on('value', (snapshot) => {
-            const status = snapshot.val();
-            const pumpStatus = document.getElementById('pump-status');
-            const toggleBtn = document.getElementById('btn-toggle-pump');
+        // Handle login
+        window.handleLogin = function(event) {
+            event.preventDefault();
             
-            if (status === true) {
-                pumpStatus.innerHTML = '<i class="fas fa-check-circle me-2"></i>AKTIF';
-                pumpStatus.className = 'badge bg-success status-badge';
-                toggleBtn.innerHTML = '<i class="fas fa-stop me-2"></i>Matikan Pompa';
-                toggleBtn.className = 'btn btn-danger btn-lg';
-            } else if (status === false) {
-                pumpStatus.innerHTML = '<i class="fas fa-times-circle me-2"></i>NONAKTIF';
-                pumpStatus.className = 'badge bg-secondary status-badge';
-                toggleBtn.innerHTML = '<i class="fas fa-play me-2"></i>Hidupkan Pompa';
-                toggleBtn.className = 'btn btn-success btn-lg';
-            }
-        });
-
-        // Toggle pump function
-        window.togglePump = function() {
-            pumpRef.transaction((currentStatus) => {
-                return !currentStatus;
-            });
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const loginBtn = document.getElementById('loginBtn');
+            const loginText = document.getElementById('loginText');
+            const loginSpinner = document.getElementById('loginSpinner');
+            
+            // Show loading
+            loginText.style.display = 'none';
+            loginSpinner.style.display = 'inline-block';
+            loginBtn.disabled = true;
+            
+            // Hide alerts
+            document.getElementById('errorAlert').style.display = 'none';
+            document.getElementById('successAlert').style.display = 'none';
+            
+            // Sign in with email and password
+            auth.signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    
+                    // Check user role from database
+                    return database.ref('users/' + user.uid).once('value')
+                        .then((snapshot) => {
+                            const userData = snapshot.val();
+                            if (userData) {
+                                // Store user data in session
+                                sessionStorage.setItem('userRole', userData.role || 'user');
+                                sessionStorage.setItem('userEmail', user.email);
+                                
+                                // Show success message
+                                showSuccess('Login berhasil! Mengalihkan...');
+                                
+                                // Redirect to dashboard
+                                setTimeout(() => {
+                                    window.location.href = 'dashboard.html';
+                                }, 1500);
+                            } else {
+                                // If no role data, create default
+                                return database.ref('users/' + user.uid).set({
+                                    email: user.email,
+                                    role: 'user',
+                                    createdAt: new Date().toISOString()
+                                }).then(() => {
+                                    sessionStorage.setItem('userRole', 'user');
+                                    sessionStorage.setItem('userEmail', user.email);
+                                    
+                                    showSuccess('Login berhasil! Mengalihkan...');
+                                    
+                                    setTimeout(() => {
+                                        window.location.href = 'dashboard.html';
+                                    }, 1500);
+                                });
+                            }
+                        });
+                })
+                .catch((error) => {
+                    // Hide loading
+                    loginText.style.display = 'inline-block';
+                    loginSpinner.style.display = 'none';
+                    loginBtn.disabled = false;
+                    
+                    // Show error
+                    let errorMessage = 'Login gagal. ';
+                    switch (error.code) {
+                        case 'auth/user-not-found':
+                            errorMessage += 'Email tidak terdaftar.';
+                            break;
+                        case 'auth/wrong-password':
+                            errorMessage += 'Password salah.';
+                            break;
+                        case 'auth/invalid-email':
+                            errorMessage += 'Format email tidak valid.';
+                            break;
+                        case 'auth/user-disabled':
+                            errorMessage += 'Akun telah dinonaktifkan.';
+                            break;
+                        default:
+                            errorMessage += error.message;
+                    }
+                    showError(errorMessage);
+                });
         };
 
-        // Load history data
-        const historyRef = database.ref('monitoring/history').limitToLast(10);
-        historyRef.on('value', (snapshot) => {
-            const data = snapshot.val();
-            const tbody = document.getElementById('history-table');
+        // Show register modal
+        window.showRegister = function() {
+            const modal = new bootstrap.Modal(document.getElementById('registerModal'));
+            modal.show();
+        };
+
+        // Handle register
+        window.handleRegister = function(event) {
+            event.preventDefault();
             
-            if (data) {
-                let html = '';
-                const historyArray = Object.entries(data).reverse();
-                
-                historyArray.forEach(([key, value]) => {
-                    if (value.time) {
-                        html += `<tr>
-                            <td>${value.time || '-'}</td>
-                            <td>${value.voltage || 0} V</td>
-                            <td>${value.current || 0} A</td>
-                            <td>${value.power || 0} W</td>
-                        </tr>`;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const role = document.getElementById('regRole').value;
+            
+            // Create user with email and password
+            auth.createUserWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    
+                    // Save user role to database
+                    return database.ref('users/' + user.uid).set({
+                        email: user.email,
+                        role: role,
+                        createdAt: new Date().toISOString()
+                    });
+                })
+                .then(() => {
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
+                    
+                    // Show success message
+                    showSuccess('Registrasi berhasil! Silakan login.');
+                    
+                    // Clear form
+                    document.getElementById('registerForm').reset();
+                })
+                .catch((error) => {
+                    let errorMessage = 'Registrasi gagal. ';
+                    if (error.code === 'auth/email-already-in-use') {
+                        errorMessage += 'Email sudah digunakan.';
+                    } else {
+                        errorMessage += error.message;
                     }
+                    showError(errorMessage);
                 });
-                
-                if (html) {
-                    tbody.innerHTML = html;
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center">Tidak ada data history</td></tr>';
-                }
-            } else {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center">Tidak ada data history</td></tr>';
-            }
-        });
+        };
 
-        // Error handling
-        database.ref('.info/connected').on('value', (snapshot) => {
-            if (snapshot.val() === true) {
-                console.log('Terhubung ke Firebase');
-            } else {
-                console.log('Tidak terhubung ke Firebase');
-            }
-        });
+        // Show error message
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorAlert.style.display = 'block';
+            
+            // Auto hide after 5 seconds
+            setTimeout(() => {
+                errorAlert.style.display = 'none';
+            }, 5000);
+        }
 
-        console.log('Dashboard initialized successfully');
+        // Show success message
+        function showSuccess(message) {
+            const successAlert = document.getElementById('successAlert');
+            const successMessage = document.getElementById('successMessage');
+            successMessage.textContent = message;
+            successAlert.style.display = 'block';
+            
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                successAlert.style.display = 'none';
+            }, 3000);
+        }
     </script>
-
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
