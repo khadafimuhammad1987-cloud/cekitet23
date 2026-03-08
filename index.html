@@ -116,7 +116,7 @@ const firebaseConfig = {
   projectId: "rohmadafi",
   storageBucket: "rohmadafi.firebasestorage.app",
   messagingSenderId: "285538177933",
-  appId: "1:285538177933:web:fcd8576153cfab9828a3c4"
+  appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
@@ -157,34 +157,34 @@ let multiChart=new Chart(ctxMulti,{
 
 // Load Realtime Data
 function loadRealtimeData(){
-  db.ref('realtime').on('value',snapshot=>{
-    const d=snapshot.val();
+  db.ref('monitoring/live').on('value',snapshot=>{
+    const d = snapshot.val();
     console.log("Realtime Data:",d);
     if(!d) return;
 
-    document.getElementById('voltage').innerText=Number(d.voltage).toFixed(1);
-    document.getElementById('current').innerText=Number(d.current).toFixed(2);
-    document.getElementById('power').innerText=Number(d.power).toFixed(1);
-    document.getElementById('energy_total').innerText=Number(d.energy_total).toFixed(2);
-    document.getElementById('energy_used').innerText=Number(d.energy_used).toFixed(2);
-    document.getElementById('frequency').innerText=Number(d.frequency).toFixed(1);
-    document.getElementById('pf').innerText=Number(d.pf).toFixed(2);
-    document.getElementById('time').innerText=d.time || "-";
+    document.getElementById('voltage').innerText = Number(d.voltage).toFixed(1);
+    document.getElementById('current').innerText = Number(d.current).toFixed(2);
+    document.getElementById('power').innerText = Number(d.power).toFixed(1);
+    document.getElementById('energy_total').innerText = Number(d.energy_total).toFixed(2);
+    document.getElementById('energy_used').innerText = Number(d.energy_used).toFixed(2);
+    document.getElementById('frequency').innerText = Number(d.frequency).toFixed(1);
+    document.getElementById('pf').innerText = Number(d.pf).toFixed(2);
+    document.getElementById('time').innerText = d.time || "-";
 
-    document.getElementById('biaya_per_jam').innerText=Number(d.biaya_per_jam).toLocaleString();
-    document.getElementById('biaya_per_hari').innerText=Number(d.biaya_per_hari).toLocaleString();
-    document.getElementById('biaya_per_bulan').innerText=Number(d.biaya_per_bulan).toLocaleString();
-    document.getElementById('biaya_total').innerText=Number(d.biaya_total).toLocaleString();
+    document.getElementById('biaya_per_jam').innerText = Number(d.biaya_per_jam).toLocaleString();
+    document.getElementById('biaya_per_hari').innerText = Number(d.biaya_per_hari).toLocaleString();
+    document.getElementById('biaya_per_bulan').innerText = Number(d.biaya_per_bulan).toLocaleString();
+    document.getElementById('biaya_total').innerText = Number(d.biaya_total).toLocaleString();
 
     // Update KWH chart
     if(kwhChart.data.labels.length>20){kwhChart.data.labels.shift();kwhChart.data.datasets[0].data.shift();}
-    kwhChart.data.labels.push(d.time||new Date().toLocaleTimeString());
+    kwhChart.data.labels.push(d.time || new Date().toLocaleTimeString());
     kwhChart.data.datasets[0].data.push(Number(d.energy_total));
     kwhChart.update();
 
     // Update Multi chart
     if(multiChart.data.labels.length>20){multiChart.data.labels.shift();multiChart.data.datasets.forEach(ds=>ds.data.shift());}
-    multiChart.data.labels.push(d.time||new Date().toLocaleTimeString());
+    multiChart.data.labels.push(d.time || new Date().toLocaleTimeString());
     multiChart.data.datasets[0].data.push(Number(d.power));
     multiChart.data.datasets[1].data.push(Number(d.voltage));
     multiChart.data.datasets[2].data.push(Number(d.current));
@@ -196,7 +196,7 @@ function loadRealtimeData(){
 function loadHistoricalData(){
   const date=document.getElementById('datePicker').value;
   if(!date) return alert('Pilih tanggal!');
-  db.ref('kwh/'+date).once('value',snapshot=>{
+  db.ref('monitoring/history/'+date).once('value',snapshot=>{
     const data=snapshot.val();
     if(!data) return alert('Data tidak ditemukan');
 
@@ -233,4 +233,3 @@ auth.onAuthStateChanged(user=>{
 
 </body>
 </html>
-
