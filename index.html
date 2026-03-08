@@ -91,7 +91,7 @@ transform:scale(1.05);
 }
 
 .value{
-font-size:28px;
+font-size:26px;
 color:#00eaff;
 margin-top:10px;
 }
@@ -123,6 +123,13 @@ margin-top:20px;
 background:white;
 border-radius:10px;
 padding:20px;
+}
+
+/* DATE */
+
+.history{
+margin-top:20px;
+text-align:center;
 }
 
 </style>
@@ -181,8 +188,13 @@ Power Factor
 </div>
 
 <div class="card">
-Biaya / Hari
-<div class="value" id="biaya">0</div>
+Tarif PLN
+<div class="value" id="tarif">0</div>
+</div>
+
+<div class="card">
+Estimasi Biaya
+<div class="value" id="biayaTotal">0</div>
 </div>
 
 </div>
@@ -196,6 +208,16 @@ Biaya / Hari
 <br><br>
 
 <button onclick="togglePump()">ON / OFF</button>
+
+</div>
+
+<div class="history">
+
+<h3>Lihat Data Berdasarkan Tanggal</h3>
+
+<input type="date" id="tanggal">
+
+<button onclick="loadHistory()">Tampilkan</button>
 
 </div>
 
@@ -224,6 +246,10 @@ firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth();
 const db=firebase.database();
 
+/* TARIF PLN */
+
+let tarifKwh=1444.7
+
 /* LOGIN */
 
 function login(){
@@ -248,7 +274,13 @@ startMonitor()
 
 /* CHART */
 
-let chart=new Chart(document.getElementById("chart"),{
+let ctx=document.getElementById("chart").getContext("2d")
+
+let gradient=ctx.createLinearGradient(0,0,0,400)
+gradient.addColorStop(0,"#00eaff")
+gradient.addColorStop(1,"#007bff")
+
+let chart=new Chart(ctx,{
 
 type:"line",
 
@@ -257,14 +289,17 @@ labels:[],
 datasets:[{
 label:"Power (W)",
 data:[],
-borderColor:"#007bff",
-fill:false
+borderColor:"#00eaff",
+backgroundColor:gradient,
+fill:true,
+tension:0.4,
+pointRadius:2
 }]
 }
 
 })
 
-/* LOAD DATA */
+/* START MONITOR */
 
 function startMonitor(){
 
@@ -280,7 +315,11 @@ document.getElementById("energy").innerHTML=d.energy_total+" kWh"
 document.getElementById("freq").innerHTML=d.frequency+" Hz"
 document.getElementById("pf").innerHTML=d.pf
 
-document.getElementById("biaya").innerHTML="Rp "+d.biaya_per_hari
+document.getElementById("tarif").innerHTML="Rp "+tarifKwh+"/kWh"
+
+let biaya=(d.energy_total*tarifKwh).toFixed(0)
+
+document.getElementById("biayaTotal").innerHTML="Rp "+biaya
 
 updateChart(d.power)
 
@@ -310,7 +349,7 @@ box.classList.add("off")
 
 }
 
-/* CONTROL */
+/* CONTROL POMPA */
 
 function togglePump(){
 
@@ -324,7 +363,7 @@ ref.set(!snap.val())
 
 }
 
-/* CHART UPDATE */
+/* UPDATE CHART */
 
 function updateChart(power){
 
@@ -333,7 +372,7 @@ let t=new Date().toLocaleTimeString()
 chart.data.labels.push(t)
 chart.data.datasets[0].data.push(power)
 
-if(chart.data.labels.length>20){
+if(chart.data.labels.length>25){
 
 chart.data.labels.shift()
 chart.data.datasets[0].data.shift()
@@ -341,6 +380,35 @@ chart.data.datasets[0].data.shift()
 }
 
 chart.update()
+
+}
+
+/* HISTORY BERDASARKAN TANGGAL */
+
+function loadHistory(){
+
+let t=document.getElementById("tanggal").value
+
+chart.data.labels=[]
+chart.data.datasets[0].data=[]
+
+db.ref("monitoring/history").once("value",snap=>{
+
+snap.forEach(child=>{
+
+let d=child.val()
+
+let tanggal=t.split("-").reverse().join("-")
+
+if(d.time.includes(tanggal)){
+
+updateChart(d.power)
+
+}
+
+})
+
+})
 
 }
 
