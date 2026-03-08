@@ -96,8 +96,16 @@
 
   <!-- Grafik KWH -->
   <div class="bg-white p-4 rounded shadow mb-6">
+    <h3 class="font-bold mb-2">Grafik Realtime KWH</h3>
     <canvas id="kwhChart"></canvas>
   </div>
+
+  <!-- Multi sensor chart -->
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <h3 class="font-bold mb-2">Grafik Power, Voltage, Current</h3>
+    <canvas id="multiChart"></canvas>
+  </div>
+
 </div>
 
 <script>
@@ -110,20 +118,18 @@ const firebaseConfig = {
   messagingSenderId: "285538177933",
   appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-// Login
-function login() {
-  const email = document.getElementById('email').value;
-  const password = document.getElementById('password').value;
+// Login & Logout
+function login(){
+  const email=document.getElementById('email').value;
+  const password=document.getElementById('password').value;
   auth.signInWithEmailAndPassword(email,password)
-    .then(()=>{document.getElementById('login-screen').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');loadRealtimeData();})
-    .catch(err=>{document.getElementById('login-error').innerText=err.message;});
+      .then(()=>{document.getElementById('login-screen').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');loadRealtimeData();})
+      .catch(err=>{document.getElementById('login-error').innerText=err.message;});
 }
-
 function logout(){
   auth.signOut();
   document.getElementById('dashboard').classList.add('hidden');
@@ -131,53 +137,88 @@ function logout(){
 }
 
 // Chart setup
-let ctxKWH = document.getElementById('kwhChart').getContext('2d');
-let kwhChart = new Chart(ctxKWH,{type:'line',data:{labels:[],datasets:[{label:'KWH',data:[],borderColor:'rgb(34,197,94)',backgroundColor:'rgba(34,197,94,0.2)',tension:0.3}]},options:{responsive:true,plugins:{legend:{display:true}},scales:{x:{title:{display:true,text:'Time'}},y:{title:{display:true,text:'KWH'},beginAtZero:true}}}});
+let ctxKWH=document.getElementById('kwhChart').getContext('2d');
+let kwhChart=new Chart(ctxKWH,{
+  type:'line',
+  data:{labels:[],datasets:[{label:'KWH',data:[],borderColor:'rgb(34,197,94)',backgroundColor:'rgba(34,197,94,0.2)',tension:0.3}]},
+  options:{responsive:true,plugins:{legend:{display:true}},scales:{x:{title:{display:true,text:'Time'}},y:{title:{display:true,text:'KWH'},beginAtZero:true}}}
+});
 
-// Realtime Data
+let ctxMulti=document.getElementById('multiChart').getContext('2d');
+let multiChart=new Chart(ctxMulti,{
+  type:'line',
+  data:{labels:[],datasets:[
+    {label:'Power (W)',data:[],borderColor:'rgb(239,68,68)',backgroundColor:'rgba(239,68,68,0.2)',tension:0.3},
+    {label:'Voltage (V)',data:[],borderColor:'rgb(59,130,246)',backgroundColor:'rgba(59,130,246,0.2)',tension:0.3},
+    {label:'Current (A)',data:[],borderColor:'rgb(34,197,94)',backgroundColor:'rgba(34,197,94,0.2)',tension:0.3}
+  ]},
+  options:{responsive:true,plugins:{legend:{display:true}},scales:{x:{title:{display:true,text:'Time'}},y:{title:{display:true,text:'Value'},beginAtZero:true}}}
+});
+
+// Load Realtime Data
 function loadRealtimeData(){
-  db.ref('realtime').on('value', snapshot=>{
-    const d = snapshot.val();
+  db.ref('realtime').on('value',snapshot=>{
+    const d=snapshot.val();
+    console.log("Realtime Data:",d);
     if(!d) return;
-    document.getElementById('voltage').innerText=d.voltage.toFixed(1);
-    document.getElementById('current').innerText=d.current.toFixed(2);
-    document.getElementById('power').innerText=d.power.toFixed(1);
-    document.getElementById('energy_total').innerText=d.energy_total.toFixed(2);
-    document.getElementById('energy_used').innerText=d.energy_used.toFixed(2);
-    document.getElementById('frequency').innerText=d.frequency.toFixed(1);
-    document.getElementById('pf').innerText=d.pf.toFixed(2);
-    document.getElementById('time').innerText=d.time;
 
-    document.getElementById('biaya_per_jam').innerText=d.biaya_per_jam.toLocaleString();
-    document.getElementById('biaya_per_hari').innerText=d.biaya_per_hari.toLocaleString();
-    document.getElementById('biaya_per_bulan').innerText=d.biaya_per_bulan.toLocaleString();
-    document.getElementById('biaya_total').innerText=d.biaya_total.toLocaleString();
+    document.getElementById('voltage').innerText=Number(d.voltage).toFixed(1);
+    document.getElementById('current').innerText=Number(d.current).toFixed(2);
+    document.getElementById('power').innerText=Number(d.power).toFixed(1);
+    document.getElementById('energy_total').innerText=Number(d.energy_total).toFixed(2);
+    document.getElementById('energy_used').innerText=Number(d.energy_used).toFixed(2);
+    document.getElementById('frequency').innerText=Number(d.frequency).toFixed(1);
+    document.getElementById('pf').innerText=Number(d.pf).toFixed(2);
+    document.getElementById('time').innerText=d.time || "-";
 
-    // Update chart
+    document.getElementById('biaya_per_jam').innerText=Number(d.biaya_per_jam).toLocaleString();
+    document.getElementById('biaya_per_hari').innerText=Number(d.biaya_per_hari).toLocaleString();
+    document.getElementById('biaya_per_bulan').innerText=Number(d.biaya_per_bulan).toLocaleString();
+    document.getElementById('biaya_total').innerText=Number(d.biaya_total).toLocaleString();
+
+    // Update KWH chart
     if(kwhChart.data.labels.length>20){kwhChart.data.labels.shift();kwhChart.data.datasets[0].data.shift();}
-    kwhChart.data.labels.push(d.time);
-    kwhChart.data.datasets[0].data.push(d.energy_total);
+    kwhChart.data.labels.push(d.time||new Date().toLocaleTimeString());
+    kwhChart.data.datasets[0].data.push(Number(d.energy_total));
     kwhChart.update();
+
+    // Update Multi chart
+    if(multiChart.data.labels.length>20){multiChart.data.labels.shift();multiChart.data.datasets.forEach(ds=>ds.data.shift());}
+    multiChart.data.labels.push(d.time||new Date().toLocaleTimeString());
+    multiChart.data.datasets[0].data.push(Number(d.power));
+    multiChart.data.datasets[1].data.push(Number(d.voltage));
+    multiChart.data.datasets[2].data.push(Number(d.current));
+    multiChart.update();
   });
 }
 
-// Historical data
+// Load historical data
 function loadHistoricalData(){
-  const date = document.getElementById('datePicker').value;
+  const date=document.getElementById('datePicker').value;
   if(!date) return alert('Pilih tanggal!');
-  db.ref('kwh/'+date).once('value', snapshot=>{
-    const data = snapshot.val();
+  db.ref('kwh/'+date).once('value',snapshot=>{
+    const data=snapshot.val();
     if(!data) return alert('Data tidak ditemukan');
+
     kwhChart.data.labels=[]; kwhChart.data.datasets[0].data=[];
+    multiChart.data.labels=[]; multiChart.data.datasets.forEach(ds=>ds.data=[]);
+
     Object.keys(data).forEach(t=>{
       kwhChart.data.labels.push(t);
-      kwhChart.data.datasets[0].data.push(data[t].energy_total);
+      kwhChart.data.datasets[0].data.push(Number(data[t].energy_total));
+
+      multiChart.data.labels.push(t);
+      multiChart.data.datasets[0].data.push(Number(data[t].power));
+      multiChart.data.datasets[1].data.push(Number(data[t].voltage));
+      multiChart.data.datasets[2].data.push(Number(data[t].current));
     });
+
     kwhChart.update();
+    multiChart.update();
   });
 }
 
-// Auth state
+// Auth state listener
 auth.onAuthStateChanged(user=>{
   if(user){
     document.getElementById('login-screen').classList.add('hidden');
