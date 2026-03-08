@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Monitoring KWH Interaktif</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Dashboard Monitoring KWH</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
 
-<!-- Login -->
+<!-- Login Screen -->
 <div id="login-screen" class="flex items-center justify-center h-screen">
   <div class="bg-white p-8 rounded shadow-md w-80">
     <h2 class="text-xl font-bold mb-4 text-center">Login Dashboard</h2>
@@ -27,7 +27,7 @@
 <div id="dashboard" class="hidden p-6">
 
   <div class="flex justify-between items-center mb-6">
-    <h1 class="text-2xl font-bold">Dashboard Listrik Interaktif</h1>
+    <h1 class="text-2xl font-bold">Dashboard Listrik</h1>
     <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
   </div>
 
@@ -38,9 +38,8 @@
     <button onclick="loadHistoricalData()" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Tampilkan Histori</button>
   </div>
 
-  <!-- Widgets Sensor -->
-  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6" id="sensor-widgets">
-    <!-- Widget akan diupdate realtime -->
+  <!-- Sensor Widgets -->
+  <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-white p-4 rounded shadow text-center">
       <h3 class="font-bold">Voltage (V)</h3>
       <p id="voltage">0</p>
@@ -75,7 +74,7 @@
     </div>
   </div>
 
-  <!-- Widgets Biaya -->
+  <!-- Biaya -->
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
     <div class="bg-white p-4 rounded shadow text-center">
       <h3 class="font-bold">Biaya per Jam (Rp)</h3>
@@ -95,24 +94,10 @@
     </div>
   </div>
 
-  <!-- Grafik Realtime -->
+  <!-- Grafik KWH -->
   <div class="bg-white p-4 rounded shadow mb-6">
-    <h3 class="font-bold mb-2">Grafik KWH Realtime</h3>
     <canvas id="kwhChart"></canvas>
   </div>
-
-  <!-- Grafik Sensor Lain -->
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h3 class="font-bold mb-2">Grafik Power, Voltage, Current</h3>
-    <canvas id="multiChart"></canvas>
-  </div>
-
-  <!-- Grafik Biaya -->
-  <div class="bg-white p-4 rounded shadow mb-6">
-    <h3 class="font-bold mb-2">Grafik Biaya per Jam</h3>
-    <canvas id="costChart"></canvas>
-  </div>
-
 </div>
 
 <script>
@@ -125,41 +110,35 @@ const firebaseConfig = {
   messagingSenderId: "285538177933",
   appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
 };
+
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
 // Login
-function login(){
+function login() {
   const email = document.getElementById('email').value;
   const password = document.getElementById('password').value;
   auth.signInWithEmailAndPassword(email,password)
     .then(()=>{document.getElementById('login-screen').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');loadRealtimeData();})
-    .catch(err=>{document.getElementById('login-error').innerText = err.message;});
+    .catch(err=>{document.getElementById('login-error').innerText=err.message;});
 }
-function logout(){auth.signOut();document.getElementById('dashboard').classList.add('hidden');document.getElementById('login-screen').classList.remove('hidden');}
 
-// Chart Realtime KWH
+function logout(){
+  auth.signOut();
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// Chart setup
 let ctxKWH = document.getElementById('kwhChart').getContext('2d');
 let kwhChart = new Chart(ctxKWH,{type:'line',data:{labels:[],datasets:[{label:'KWH',data:[],borderColor:'rgb(34,197,94)',backgroundColor:'rgba(34,197,94,0.2)',tension:0.3}]},options:{responsive:true,plugins:{legend:{display:true}},scales:{x:{title:{display:true,text:'Time'}},y:{title:{display:true,text:'KWH'},beginAtZero:true}}}});
 
-// Multi Chart: Power, Voltage, Current
-let ctxMulti = document.getElementById('multiChart').getContext('2d');
-let multiChart = new Chart(ctxMulti,{type:'line',data:{labels:[],datasets:[
-  {label:'Power (W)',data:[],borderColor:'rgb(239,68,68)',backgroundColor:'rgba(239,68,68,0.2)',tension:0.3},
-  {label:'Voltage (V)',data:[],borderColor:'rgb(59,130,246)',backgroundColor:'rgba(59,130,246,0.2)',tension:0.3},
-  {label:'Current (A)',data:[],borderColor:'rgb(34,197,94)',backgroundColor:'rgba(34,197,94,0.2)',tension:0.3}
-]},options:{responsive:true,plugins:{legend:{display:true}},scales:{x:{title:{display:true,text:'Time'}},y:{title:{display:true,text:'Value'},beginAtZero:true}}}});
-
-// Chart biaya per jam
-let ctxCost = document.getElementById('costChart').getContext('2d');
-let costChart = new Chart(ctxCost,{type:'bar',data:{labels:[],datasets:[{label:'Biaya per Jam (Rp)',data:[],backgroundColor:'rgb(251,191,36)'}]},options:{responsive:true,plugins:{legend:{display:true}},scales:{x:{title:{display:true,text:'Time'}},y:{title:{display:true,text:'Rp'},beginAtZero:true}}}});
-
-// Load realtime data
+// Realtime Data
 function loadRealtimeData(){
-  db.ref('realtime').on('value',snapshot=>{
-    const d=snapshot.val();if(!d)return;
-    // Update widget
+  db.ref('realtime').on('value', snapshot=>{
+    const d = snapshot.val();
+    if(!d) return;
     document.getElementById('voltage').innerText=d.voltage.toFixed(1);
     document.getElementById('current').innerText=d.current.toFixed(2);
     document.getElementById('power').innerText=d.power.toFixed(1);
@@ -168,61 +147,48 @@ function loadRealtimeData(){
     document.getElementById('frequency').innerText=d.frequency.toFixed(1);
     document.getElementById('pf').innerText=d.pf.toFixed(2);
     document.getElementById('time').innerText=d.time;
+
     document.getElementById('biaya_per_jam').innerText=d.biaya_per_jam.toLocaleString();
     document.getElementById('biaya_per_hari').innerText=d.biaya_per_hari.toLocaleString();
     document.getElementById('biaya_per_bulan').innerText=d.biaya_per_bulan.toLocaleString();
     document.getElementById('biaya_total').innerText=d.biaya_total.toLocaleString();
 
-    // Update grafik realtime KWH
-    const t=d.time;
+    // Update chart
     if(kwhChart.data.labels.length>20){kwhChart.data.labels.shift();kwhChart.data.datasets[0].data.shift();}
-    kwhChart.data.labels.push(t);
+    kwhChart.data.labels.push(d.time);
     kwhChart.data.datasets[0].data.push(d.energy_total);
     kwhChart.update();
-
-    // Update multiChart
-    if(multiChart.data.labels.length>20){multiChart.data.labels.shift();multiChart.data.datasets.forEach(ds=>ds.data.shift());}
-    multiChart.data.labels.push(t);
-    multiChart.data.datasets[0].data.push(d.power);
-    multiChart.data.datasets[1].data.push(d.voltage);
-    multiChart.data.datasets[2].data.push(d.current);
-    multiChart.update();
-
-    // Update costChart
-    if(costChart.data.labels.length>20){costChart.data.labels.shift();costChart.data.datasets[0].data.shift();}
-    costChart.data.labels.push(t);
-    costChart.data.datasets[0].data.push(d.biaya_per_jam);
-    costChart.update();
   });
 }
 
-// Load historical data per tanggal
+// Historical data
 function loadHistoricalData(){
-  const date=document.getElementById('datePicker').value;
-  if(!date)return alert('Pilih tanggal!');
-  db.ref('kwh/'+date).once('value',snapshot=>{
-    const data=snapshot.val();
-    if(!data)return alert('Data tidak ada');
-    // Reset charts
-    kwhChart.data.labels=[];kwhChart.data.datasets[0].data=[];
-    multiChart.data.labels=[];multiChart.data.datasets.forEach(ds=>ds.data=[]);
-    costChart.data.labels=[];costChart.data.datasets[0].data=[];
+  const date = document.getElementById('datePicker').value;
+  if(!date) return alert('Pilih tanggal!');
+  db.ref('kwh/'+date).once('value', snapshot=>{
+    const data = snapshot.val();
+    if(!data) return alert('Data tidak ditemukan');
+    kwhChart.data.labels=[]; kwhChart.data.datasets[0].data=[];
     Object.keys(data).forEach(t=>{
-      kwhChart.data.labels.push(t);kwhChart.data.datasets[0].data.push(data[t].energy_total);
-      multiChart.data.labels.push(t);
-      multiChart.data.datasets[0].data.push(data[t].power);
-      multiChart.data.datasets[1].data.push(data[t].voltage);
-      multiChart.data.datasets[2].data.push(data[t].current);
-      costChart.data.labels.push(t);costChart.data.datasets[0].data.push(data[t].biaya_per_jam);
+      kwhChart.data.labels.push(t);
+      kwhChart.data.datasets[0].data.push(data[t].energy_total);
     });
-    kwhChart.update();multiChart.update();costChart.update();
+    kwhChart.update();
   });
 }
 
 // Auth state
-auth.onAuthStateChanged(user=>{if(user){document.getElementById('login-screen').classList.add('hidden');document.getElementById('dashboard').classList.remove('hidden');loadRealtimeData();}else{document.getElementById('dashboard').classList.add('hidden');document.getElementById('login-screen').classList.remove('hidden');}});
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
+    loadRealtimeData();
+  }else{
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+  }
+});
 </script>
 
 </body>
 </html>
-
