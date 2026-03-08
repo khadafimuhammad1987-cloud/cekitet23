@@ -4,64 +4,125 @@
 
 <head>
 
-<title>PLN Energy Monitor</title>
+<title>Smart Energy Monitoring</title>
 
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 
 body{
-font-family:Arial;
-background:#eef3ff;
+font-family:Segoe UI;
 margin:0;
+background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+color:white;
 }
 
-.header{
-background:linear-gradient(90deg,#004aad,#00a2ff);
-color:white;
+/* HEADER */
+
+header{
+text-align:center;
 padding:20px;
-font-size:25px;
+font-size:28px;
+font-weight:bold;
 }
+
+/* LOGIN */
 
 .login{
-width:300px;
+width:320px;
 margin:auto;
 margin-top:120px;
-background:white;
+background:rgba(255,255,255,0.1);
+backdrop-filter:blur(10px);
 padding:30px;
 border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.1);
+text-align:center;
 }
+
+input{
+width:90%;
+padding:10px;
+margin:10px;
+border:none;
+border-radius:5px;
+}
+
+button{
+padding:10px 20px;
+border:none;
+border-radius:5px;
+background:#00d4ff;
+color:black;
+font-size:16px;
+cursor:pointer;
+}
+
+/* DASHBOARD */
 
 .dashboard{
 display:none;
 padding:20px;
 }
 
-.card{
-background:white;
-padding:20px;
-margin:10px;
-border-radius:10px;
-box-shadow:0 2px 5px rgba(0,0,0,0.1);
-display:inline-block;
-width:200px;
-text-align:center;
-font-size:20px;
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+gap:15px;
 }
 
-.chart{
-width:90%;
-background:white;
+.card{
+background:rgba(255,255,255,0.1);
 padding:20px;
 border-radius:10px;
+text-align:center;
+transition:0.3s;
+}
+
+.card:hover{
+transform:scale(1.05);
+}
+
+.value{
+font-size:28px;
+color:#00eaff;
+margin-top:10px;
+}
+
+/* PUMP */
+
+.pump{
 margin-top:20px;
+text-align:center;
+}
+
+.pump img{
+width:100px;
+transition:0.5s;
+}
+
+.on img{
+filter:drop-shadow(0 0 15px #00ff9d);
+}
+
+.off img{
+filter:grayscale(100%);
+}
+
+/* CHART */
+
+.chart{
+margin-top:20px;
+background:white;
+border-radius:10px;
+padding:20px;
 }
 
 </style>
@@ -70,15 +131,16 @@ margin-top:20px;
 
 <body>
 
-<div class="header">
-⚡ PLN Energy Monitoring
-</div>
+<header>⚡ Smart Energy Monitoring</header>
 
 <div class="login" id="login">
 
 <h3>Login</h3>
 
-<input id="email" placeholder="Email"><br><br> <input id="password" type="password" placeholder="Password"><br><br>
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+
+<br>
 
 <button onclick="login()">Login</button>
 
@@ -86,15 +148,56 @@ margin-top:20px;
 
 <div class="dashboard" id="dashboard">
 
-<div class="card">Voltage<br><b id="voltage">0</b> V</div>
-<div class="card">Current<br><b id="current">0</b> A</div>
-<div class="card">Power<br><b id="power">0</b> W</div>
-<div class="card">Energy<br><b id="energy">0</b> kWh</div>
+<div class="grid">
 
-<div class="card">Frequency<br><b id="freq">0</b> Hz</div>
-<div class="card">Power Factor<br><b id="pf">0</b></div>
+<div class="card">
+Voltage
+<div class="value" id="voltage">0</div>
+</div>
 
-<div class="card">Biaya / Hari<br><b id="biaya">0</b> Rp</div>
+<div class="card">
+Current
+<div class="value" id="current">0</div>
+</div>
+
+<div class="card">
+Power
+<div class="value" id="power">0</div>
+</div>
+
+<div class="card">
+Energy
+<div class="value" id="energy">0</div>
+</div>
+
+<div class="card">
+Frequency
+<div class="value" id="freq">0</div>
+</div>
+
+<div class="card">
+Power Factor
+<div class="value" id="pf">0</div>
+</div>
+
+<div class="card">
+Biaya / Hari
+<div class="value" id="biaya">0</div>
+</div>
+
+</div>
+
+<div class="pump off" id="pumpBox">
+
+<h3>Pompa Air</h3>
+
+<img src="https://cdn-icons-png.flaticon.com/512/2966/2966489.png">
+
+<br><br>
+
+<button onclick="togglePump()">ON / OFF</button>
+
+</div>
 
 <div class="chart">
 <canvas id="chart"></canvas>
@@ -104,81 +207,140 @@ margin-top:20px;
 
 <script>
 
-const firebaseConfig = {
-apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
-authDomain: "rohmadafi.firebaseapp.com",
-databaseURL: "https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId: "rohmadafi",
-storageBucket: "rohmadafi.firebasestorage.app",
-messagingSenderId: "285538177933",
-appId: "1:285538177933:web:e1f732b60209da0e28a3c4"
+/* FIREBASE CONFIG */
+
+const firebaseConfig={
+apiKey:"AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
+authDomain:"rohmadafi.firebaseapp.com",
+databaseURL:"https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
+projectId:"rohmadafi",
+storageBucket:"rohmadafi.firebasestorage.app",
+messagingSenderId:"285538177933",
+appId:"1:285538177933:web:e1f732b60209da0e28a3c4"
 };
 
-const app = firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const db = firebase.database();
+firebase.initializeApp(firebaseConfig);
+
+const auth=firebase.auth();
+const db=firebase.database();
+
+/* LOGIN */
 
 function login(){
 
-let email = document.getElementById("email").value;
-let password = document.getElementById("password").value;
+let email=document.getElementById("email").value;
+let password=document.getElementById("password").value;
 
 auth.signInWithEmailAndPassword(email,password)
+
 .then(()=>{
 
 document.getElementById("login").style.display="none";
 document.getElementById("dashboard").style.display="block";
 
-loadData()
+startMonitor()
 
 })
 
-.catch(err=>{
-alert(err.message)
-})
+.catch(err=>alert(err.message))
 
 }
 
-let chart = new Chart(document.getElementById("chart"),{
-type:'line',
+/* CHART */
+
+let chart=new Chart(document.getElementById("chart"),{
+
+type:"line",
+
 data:{
 labels:[],
 datasets:[{
 label:"Power (W)",
 data:[],
-borderColor:"blue",
+borderColor:"#007bff",
 fill:false
 }]
 }
+
 })
 
-function loadData(){
+/* LOAD DATA */
 
-db.ref("monitoring/live").on("value",(snapshot)=>{
+function startMonitor(){
 
-let data=snapshot.val()
+db.ref("monitoring/live").on("value",snap=>{
 
-document.getElementById("voltage").innerHTML=data.voltage.toFixed(1)
-document.getElementById("current").innerHTML=data.current.toFixed(2)
-document.getElementById("power").innerHTML=data.power.toFixed(1)
-document.getElementById("energy").innerHTML=data.energy_total.toFixed(2)
+let d=snap.val()
 
-document.getElementById("freq").innerHTML=data.frequency.toFixed(1)
-document.getElementById("pf").innerHTML=data.pf.toFixed(2)
+document.getElementById("voltage").innerHTML=d.voltage+" V"
+document.getElementById("current").innerHTML=d.current+" A"
+document.getElementById("power").innerHTML=d.power+" W"
+document.getElementById("energy").innerHTML=d.energy_total+" kWh"
 
-document.getElementById("biaya").innerHTML=data.biaya_per_hari.toFixed(0)
+document.getElementById("freq").innerHTML=d.frequency+" Hz"
+document.getElementById("pf").innerHTML=d.pf
 
-chart.data.labels.push("")
-chart.data.datasets[0].data.push(data.power)
+document.getElementById("biaya").innerHTML="Rp "+d.biaya_per_hari
+
+updateChart(d.power)
+
+})
+
+/* STATUS POMPA */
+
+db.ref("monitoring/control/pompa").on("value",snap=>{
+
+let state=snap.val()
+
+let box=document.getElementById("pumpBox")
+
+if(state){
+
+box.classList.remove("off")
+box.classList.add("on")
+
+}else{
+
+box.classList.remove("on")
+box.classList.add("off")
+
+}
+
+})
+
+}
+
+/* CONTROL */
+
+function togglePump(){
+
+let ref=db.ref("monitoring/control/pompa")
+
+ref.once("value").then(snap=>{
+
+ref.set(!snap.val())
+
+})
+
+}
+
+/* CHART UPDATE */
+
+function updateChart(power){
+
+let t=new Date().toLocaleTimeString()
+
+chart.data.labels.push(t)
+chart.data.datasets[0].data.push(power)
 
 if(chart.data.labels.length>20){
+
 chart.data.labels.shift()
 chart.data.datasets[0].data.shift()
+
 }
 
 chart.update()
-
-})
 
 }
 
