@@ -1,11 +1,15 @@
 <!DOCTYPE html>
+
 <html>
+
 <head>
 
 <title>PLN Energy Monitor</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js"></script>
+
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -74,8 +78,7 @@ margin-top:20px;
 
 <h3>Login</h3>
 
-<input id="email" placeholder="Email"><br><br>
-<input id="password" type="password" placeholder="Password"><br><br>
+<input id="email" placeholder="Email"><br><br> <input id="password" type="password" placeholder="Password"><br><br>
 
 <button onclick="login()">Login</button>
 
@@ -87,6 +90,11 @@ margin-top:20px;
 <div class="card">Current<br><b id="current">0</b> A</div>
 <div class="card">Power<br><b id="power">0</b> W</div>
 <div class="card">Energy<br><b id="energy">0</b> kWh</div>
+
+<div class="card">Frequency<br><b id="freq">0</b> Hz</div>
+<div class="card">Power Factor<br><b id="pf">0</b></div>
+
+<div class="card">Biaya / Hari<br><b id="biaya">0</b> Rp</div>
 
 <div class="chart">
 <canvas id="chart"></canvas>
@@ -125,6 +133,10 @@ loadData()
 
 })
 
+.catch(err=>{
+alert(err.message)
+})
+
 }
 
 let chart = new Chart(document.getElementById("chart"),{
@@ -132,23 +144,29 @@ type:'line',
 data:{
 labels:[],
 datasets:[{
-label:"Power",
+label:"Power (W)",
 data:[],
-borderColor:"blue"
+borderColor:"blue",
+fill:false
 }]
 }
 })
 
 function loadData(){
 
-db.ref("monitoring").on("value",(snapshot)=>{
+db.ref("monitoring/live").on("value",(snapshot)=>{
 
 let data=snapshot.val()
 
 document.getElementById("voltage").innerHTML=data.voltage.toFixed(1)
-document.getElementById("current").innerHTML=data.current.toFixed(1)
+document.getElementById("current").innerHTML=data.current.toFixed(2)
 document.getElementById("power").innerHTML=data.power.toFixed(1)
-document.getElementById("energy").innerHTML=data.energy.toFixed(1)
+document.getElementById("energy").innerHTML=data.energy_total.toFixed(2)
+
+document.getElementById("freq").innerHTML=data.frequency.toFixed(1)
+document.getElementById("pf").innerHTML=data.pf.toFixed(2)
+
+document.getElementById("biaya").innerHTML=data.biaya_per_hari.toFixed(0)
 
 chart.data.labels.push("")
 chart.data.datasets[0].data.push(data.power)
