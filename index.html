@@ -1,409 +1,163 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="id">
 <head>
-
-<title>Smart Energy Monitoring</title>
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<style>
-
-body{
-font-family:Segoe UI;
-margin:0;
-background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
-color:white;
-}
-
-/* HEADER */
-
-header{
-text-align:center;
-padding:20px;
-font-size:28px;
-font-weight:bold;
-}
-
-/* LOGIN */
-
-.login{
-width:320px;
-margin:auto;
-margin-top:120px;
-background:rgba(255,255,255,0.1);
-padding:30px;
-border-radius:10px;
-text-align:center;
-}
-
-input{
-width:90%;
-padding:10px;
-margin:10px;
-border:none;
-border-radius:5px;
-}
-
-button{
-padding:10px 20px;
-border:none;
-border-radius:5px;
-background:#00d4ff;
-color:black;
-font-size:16px;
-cursor:pointer;
-}
-
-/* DASHBOARD */
-
-.dashboard{
-display:none;
-padding:20px;
-}
-
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-gap:15px;
-}
-
-.card{
-background:rgba(255,255,255,0.1);
-padding:20px;
-border-radius:10px;
-text-align:center;
-}
-
-.value{
-font-size:26px;
-color:#00eaff;
-margin-top:10px;
-}
-
-/* PUMP */
-
-.pump{
-margin-top:30px;
-text-align:center;
-}
-
-.pumpIcon{
-position:relative;
-display:inline-block;
-}
-
-.pumpIcon img{
-width:110px;
-}
-
-.water{
-position:absolute;
-bottom:-20px;
-left:50%;
-transform:translateX(-50%);
-width:12px;
-height:0;
-background:#00eaff;
-border-radius:10px;
-}
-
-.on .water{
-height:80px;
-animation:flow 0.5s infinite alternate;
-}
-
-.off .water{
-height:0;
-}
-
-@keyframes flow{
-0%{transform:translateX(-50%) scaleY(1)}
-100%{transform:translateX(-50%) scaleY(1.2)}
-}
-
-/* CHART */
-
-.chart{
-margin-top:30px;
-background:white;
-border-radius:10px;
-padding:20px;
-}
-
-/* HISTORY */
-
-.history{
-margin-top:20px;
-text-align:center;
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Monitoring KWH</title>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  <!-- Tailwind CSS for modern UI -->
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="bg-gray-100 font-sans">
 
-<body>
-
-<header>⚡ Smart Energy Monitoring</header>
-
-<div class="login" id="login">
-
-<h3>Login</h3>
-
-<input id="email" placeholder="Email">
-<input id="password" type="password" placeholder="Password">
-
-<br>
-
-<button onclick="login()">Login</button>
-
+<!-- Login Screen -->
+<div id="login-screen" class="flex items-center justify-center h-screen">
+  <div class="bg-white p-8 rounded shadow-md w-80">
+    <h2 class="text-xl font-bold mb-4 text-center">Login Dashboard</h2>
+    <input type="email" id="email" placeholder="Email" class="w-full p-2 border rounded mb-3">
+    <input type="password" id="password" placeholder="Password" class="w-full p-2 border rounded mb-3">
+    <button onclick="login()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Login</button>
+    <p id="login-error" class="text-red-500 mt-2 text-sm"></p>
+  </div>
 </div>
 
-<div class="dashboard" id="dashboard">
+<!-- Dashboard -->
+<div id="dashboard" class="hidden p-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold">Monitoring Listrik KWH</h1>
+    <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
+  </div>
 
-<div class="grid">
+  <!-- Filter Tanggal -->
+  <div class="mb-4 flex gap-4 items-center">
+    <label>Pilih Tanggal:</label>
+    <input type="date" id="datePicker" class="p-2 border rounded">
+    <button onclick="loadData()" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Tampilkan</button>
+  </div>
 
-<div class="card">Voltage<div class="value" id="voltage">0</div></div>
-<div class="card">Current<div class="value" id="current">0</div></div>
-<div class="card">Power<div class="value" id="power">0</div></div>
-<div class="card">Energy<div class="value" id="energy">0</div></div>
-<div class="card">Frequency<div class="value" id="freq">0</div></div>
-<div class="card">Power Factor<div class="value" id="pf">0</div></div>
-<div class="card">Tarif PLN<div class="value" id="tarif">0</div></div>
-<div class="card">Estimasi Biaya<div class="value" id="biayaTotal">0</div></div>
+  <!-- Grafik KWH -->
+  <div class="bg-white p-4 rounded shadow mb-6">
+    <canvas id="kwhChart"></canvas>
+  </div>
 
-</div>
-
-<div class="pump off" id="pumpBox">
-
-<h3>Pompa Air</h3>
-
-<div class="pumpIcon">
-
-<img src="https://cdn-icons-png.flaticon.com/512/2966/2966489.png">
-
-<div class="water"></div>
-
-</div>
-
-<br><br>
-
-<button onclick="togglePump()">ON / OFF</button>
-
-</div>
-
-<div class="history">
-
-<h3>History Berdasarkan Tanggal</h3>
-
-<input type="date" id="tanggal">
-
-<button onclick="loadHistory()">Tampilkan</button>
-
-</div>
-
-<div class="chart">
-
-<canvas id="chart"></canvas>
-
-</div>
-
+  <!-- Rincian Biaya -->
+  <div class="bg-white p-4 rounded shadow">
+    <h2 class="font-bold mb-2">Rincian Biaya Listrik (1300VA PLN)</h2>
+    <p>Total KWH: <span id="totalKwh">0</span> kWh</p>
+    <p>Biaya Listrik: Rp <span id="totalCost">0</span></p>
+  </div>
 </div>
 
 <script>
-
-/* FIREBASE CONFIG */
-
-const firebaseConfig={
-apiKey:"AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
-authDomain:"rohmadafi.firebaseapp.com",
-databaseURL:"https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
-projectId:"rohmadafi",
-storageBucket:"rohmadafi.firebasestorage.app",
-messagingSenderId:"285538177933",
-appId:"1:285538177933:web:e1f732b60209da0e28a3c4"
-};
-
-firebase.initializeApp(firebaseConfig);
-
-const auth=firebase.auth();
-const db=firebase.database();
-
-/* TARIF PLN */
-
-let tarifKwh=1444.7
-
-/* FORMAT RUPIAH */
-
-function rupiah(n){
-
-return new Intl.NumberFormat("id-ID",{
-style:"currency",
-currency:"IDR",
-maximumFractionDigits:0
-}).format(n)
-
-}
-
-/* LOGIN */
-
-function login(){
-
-let email=document.getElementById("email").value
-let password=document.getElementById("password").value
-
-auth.signInWithEmailAndPassword(email,password)
-
-.then(()=>{
-
-document.getElementById("login").style.display="none"
-document.getElementById("dashboard").style.display="block"
-
-startMonitor()
-
-})
-
-.catch(err=>alert(err.message))
-
-}
-
-/* CHART */
-
-let ctx=document.getElementById("chart").getContext("2d")
-
-let chart=new Chart(ctx,{
-type:"line",
-data:{
-labels:[],
-datasets:[{
-label:"Power (W)",
-data:[],
-borderColor:"#00eaff",
-backgroundColor:"rgba(0,234,255,0.2)",
-fill:true,
-tension:0.4
-}]
-}
-})
-
-/* MONITOR DATA */
-
-function startMonitor(){
-
-db.ref("monitoring/live").on("value",snap=>{
-
-let d=snap.val()
-
-document.getElementById("voltage").innerHTML=parseFloat(d.voltage).toFixed(1)+" V"
-document.getElementById("current").innerHTML=parseFloat(d.current).toFixed(1)+" A"
-document.getElementById("power").innerHTML=parseFloat(d.power).toFixed(1)+" W"
-document.getElementById("energy").innerHTML=parseFloat(d.energy_total).toFixed(1)+" kWh"
-
-document.getElementById("freq").innerHTML=parseFloat(d.frequency).toFixed(1)+" Hz"
-document.getElementById("pf").innerHTML=parseFloat(d.pf).toFixed(1)
-
-document.getElementById("tarif").innerHTML=rupiah(tarifKwh)+"/kWh"
-
-let biaya=d.energy_total*tarifKwh
-
-document.getElementById("biayaTotal").innerHTML=rupiah(biaya)
-
-updateChart(d.power)
-
-})
-
-/* STATUS POMPA */
-
-db.ref("monitoring/control/pompa").on("value",snap=>{
-
-let state=snap.val()
-
-let box=document.getElementById("pumpBox")
-
-if(state){
-
-box.classList.remove("off")
-box.classList.add("on")
-
-}else{
-
-box.classList.remove("on")
-box.classList.add("off")
-
-}
-
-})
-
-}
-
-/* CONTROL POMPA */
-
-function togglePump(){
-
-let ref=db.ref("monitoring/control/pompa")
-
-ref.once("value").then(snap=>{
-
-ref.set(!snap.val())
-
-})
-
-}
-
-/* UPDATE CHART */
-
-function updateChart(power){
-
-let t=new Date().toLocaleTimeString()
-
-chart.data.labels.push(t)
-chart.data.datasets[0].data.push(power)
-
-if(chart.data.labels.length>25){
-
-chart.data.labels.shift()
-chart.data.datasets[0].data.shift()
-
-}
-
-chart.update()
-
-}
-
-/* HISTORY */
-
-function loadHistory(){
-
-let tanggal=document.getElementById("tanggal").value
-
-chart.data.labels=[]
-chart.data.datasets[0].data=[]
-
-db.ref("monitoring/history").once("value",snap=>{
-
-snap.forEach(child=>{
-
-let d=child.val()
-
-let t=tanggal.split("-").reverse().join("-")
-
-if(d.time.includes(t)){
-
-updateChart(d.power)
-
-}
-
-})
-
-})
-
-}
-
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
+    authDomain: "rohmadafi.firebaseapp.com",
+    databaseURL: "https://rohmadafi-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "rohmadafi",
+    storageBucket: "rohmadafi.firebasestorage.app",
+    messagingSenderId: "285538177933",
+    appId: "1:285538177933:web:fcd8576153cfab9828a3c4"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.database();
+
+  // Login Function
+  function login() {
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    auth.signInWithEmailAndPassword(email, password)
+      .then(() => {
+        document.getElementById('login-screen').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+      })
+      .catch(err => {
+        document.getElementById('login-error').innerText = err.message;
+      });
+  }
+
+  function logout() {
+    auth.signOut();
+    document.getElementById('dashboard').classList.add('hidden');
+    document.getElementById('login-screen').classList.remove('hidden');
+  }
+
+  // Chart.js setup
+  let ctx = document.getElementById('kwhChart').getContext('2d');
+  let kwhChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [{
+        label: 'KWH',
+        data: [],
+        borderColor: 'rgb(34, 197, 94)',
+        backgroundColor: 'rgba(34, 197, 94, 0.2)',
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: true },
+      },
+      scales: {
+        x: { title: { display: true, text: 'Waktu' } },
+        y: { title: { display: true, text: 'KWH' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Load Data function
+  function loadData() {
+    const date = document.getElementById('datePicker').value;
+    if(!date) return alert('Pilih tanggal terlebih dahulu!');
+
+    db.ref('kwh/' + date).once('value', snapshot => {
+      const data = snapshot.val();
+      if(!data) return alert('Data tidak ditemukan untuk tanggal ini');
+
+      let labels = [];
+      let values = [];
+      let totalKwh = 0;
+
+      Object.keys(data).forEach(time => {
+        labels.push(time);
+        const kwh = parseFloat(data[time].kwh.toFixed(2));
+        values.push(kwh);
+        totalKwh += kwh;
+      });
+
+      kwhChart.data.labels = labels;
+      kwhChart.data.datasets[0].data = values;
+      kwhChart.update();
+
+      document.getElementById('totalKwh').innerText = totalKwh.toFixed(2);
+
+      // Perhitungan biaya listrik PLN 1300VA (asumsi Rp 1.467/kWh)
+      const costPerKwh = 1467;
+      document.getElementById('totalCost').innerText = (totalKwh * costPerKwh).toLocaleString();
+    });
+  }
+
+  // Auto logout jika auth berubah
+  auth.onAuthStateChanged(user => {
+    if(user) {
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+    } else {
+      document.getElementById('dashboard').classList.add('hidden');
+      document.getElementById('login-screen').classList.remove('hidden');
+    }
+  });
 </script>
 
 </body>
