@@ -4,13 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Monitoring KWH</title>
-  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
-  <!-- Tailwind CSS for modern UI -->
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
@@ -33,28 +30,75 @@
     <button onclick="logout()" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">Logout</button>
   </div>
 
-  <!-- Filter Tanggal -->
-  <div class="mb-4 flex gap-4 items-center">
+  <!-- Tanggal & Grafik -->
+  <div class="mb-6 flex gap-4 items-center">
     <label>Pilih Tanggal:</label>
     <input type="date" id="datePicker" class="p-2 border rounded">
     <button onclick="loadData()" class="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600">Tampilkan</button>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Voltage (V)</h3>
+      <p id="voltage">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Current (A)</h3>
+      <p id="current">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Power (W)</h3>
+      <p id="power">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Frequency (Hz)</h3>
+      <p id="frequency">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Energy Total (kWh)</h3>
+      <p id="energy_total">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Energy Used (kWh)</h3>
+      <p id="energy_used">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Power Factor (PF)</h3>
+      <p id="pf">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Time</h3>
+      <p id="time">0</p>
+    </div>
+  </div>
+
+  <!-- Biaya Listrik -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Biaya per Jam (Rp)</h3>
+      <p id="biaya_per_jam">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Biaya per Hari (Rp)</h3>
+      <p id="biaya_per_hari">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Biaya per Bulan (Rp)</h3>
+      <p id="biaya_per_bulan">0</p>
+    </div>
+    <div class="bg-white p-4 rounded shadow">
+      <h3 class="font-bold">Total Biaya (Rp)</h3>
+      <p id="biaya_total">0</p>
+    </div>
   </div>
 
   <!-- Grafik KWH -->
   <div class="bg-white p-4 rounded shadow mb-6">
     <canvas id="kwhChart"></canvas>
   </div>
-
-  <!-- Rincian Biaya -->
-  <div class="bg-white p-4 rounded shadow">
-    <h2 class="font-bold mb-2">Rincian Biaya Listrik (1300VA PLN)</h2>
-    <p>Total KWH: <span id="totalKwh">0</span> kWh</p>
-    <p>Biaya Listrik: Rp <span id="totalCost">0</span></p>
-  </div>
 </div>
 
 <script>
-  // Firebase config
   const firebaseConfig = {
     apiKey: "AIzaSyBbP7pZ6YlzAUNOSAfxtt0wRS8GIebZHq0",
     authDomain: "rohmadafi.firebaseapp.com",
@@ -65,12 +109,10 @@
     appId: "1:285538177933:web:fcd8576153cfab9828a3c4"
   };
 
-  // Initialize Firebase
   firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
   const db = firebase.database();
 
-  // Login Function
   function login() {
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
@@ -78,6 +120,7 @@
       .then(() => {
         document.getElementById('login-screen').classList.add('hidden');
         document.getElementById('dashboard').classList.remove('hidden');
+        loadRealtimeData(); // Start realtime listener
       })
       .catch(err => {
         document.getElementById('login-error').innerText = err.message;
@@ -90,69 +133,57 @@
     document.getElementById('login-screen').classList.remove('hidden');
   }
 
-  // Chart.js setup
   let ctx = document.getElementById('kwhChart').getContext('2d');
   let kwhChart = new Chart(ctx, {
     type: 'line',
-    data: {
-      labels: [],
-      datasets: [{
-        label: 'KWH',
-        data: [],
-        borderColor: 'rgb(34, 197, 94)',
-        backgroundColor: 'rgba(34, 197, 94, 0.2)',
-        tension: 0.3
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { display: true },
-      },
-      scales: {
-        x: { title: { display: true, text: 'Waktu' } },
-        y: { title: { display: true, text: 'KWH' }, beginAtZero: true }
-      }
-    }
+    data: { labels: [], datasets: [{ label: 'KWH', data: [], borderColor: 'rgb(34,197,94)', backgroundColor: 'rgba(34,197,94,0.2)', tension: 0.3 }] },
+    options: { responsive: true, plugins: { legend: { display: true } }, scales: { x: { title: { display: true, text: 'Waktu' } }, y: { title: { display: true, text: 'KWH' }, beginAtZero: true } } }
   });
 
-  // Load Data function
   function loadData() {
     const date = document.getElementById('datePicker').value;
     if(!date) return alert('Pilih tanggal terlebih dahulu!');
-
     db.ref('kwh/' + date).once('value', snapshot => {
       const data = snapshot.val();
       if(!data) return alert('Data tidak ditemukan untuk tanggal ini');
-
-      let labels = [];
-      let values = [];
-      let totalKwh = 0;
-
+      let labels = [], values = [], totalKwh = 0;
       Object.keys(data).forEach(time => {
         labels.push(time);
-        const kwh = parseFloat(data[time].kwh.toFixed(2));
+        const kwh = parseFloat(data[time].energy_total.toFixed(2));
         values.push(kwh);
         totalKwh += kwh;
       });
-
       kwhChart.data.labels = labels;
       kwhChart.data.datasets[0].data = values;
       kwhChart.update();
-
-      document.getElementById('totalKwh').innerText = totalKwh.toFixed(2);
-
-      // Perhitungan biaya listrik PLN 1300VA (asumsi Rp 1.467/kWh)
-      const costPerKwh = 1467;
-      document.getElementById('totalCost').innerText = (totalKwh * costPerKwh).toLocaleString();
     });
   }
 
-  // Auto logout jika auth berubah
+  function loadRealtimeData() {
+    db.ref('realtime').on('value', snapshot => {
+      const data = snapshot.val();
+      if(!data) return;
+      document.getElementById('voltage').innerText = data.voltage.toFixed(1);
+      document.getElementById('current').innerText = data.current.toFixed(2);
+      document.getElementById('power').innerText = data.power.toFixed(1);
+      document.getElementById('energy_total').innerText = data.energy_total.toFixed(2);
+      document.getElementById('energy_used').innerText = data.energy_used.toFixed(2);
+      document.getElementById('frequency').innerText = data.frequency.toFixed(1);
+      document.getElementById('pf').innerText = data.pf.toFixed(2);
+      document.getElementById('time').innerText = data.time;
+
+      document.getElementById('biaya_per_jam').innerText = data.biaya_per_jam.toLocaleString();
+      document.getElementById('biaya_per_hari').innerText = data.biaya_per_hari.toLocaleString();
+      document.getElementById('biaya_per_bulan').innerText = data.biaya_per_bulan.toLocaleString();
+      document.getElementById('biaya_total').innerText = data.biaya_total.toLocaleString();
+    });
+  }
+
   auth.onAuthStateChanged(user => {
     if(user) {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('dashboard').classList.remove('hidden');
+      loadRealtimeData();
     } else {
       document.getElementById('dashboard').classList.add('hidden');
       document.getElementById('login-screen').classList.remove('hidden');
